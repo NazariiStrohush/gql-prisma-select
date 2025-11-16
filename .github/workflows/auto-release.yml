@@ -56,18 +56,19 @@ jobs:
       - name: Get latest tag
         id: get_tag
         run: |
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          # Get all version tags, filter out non-version tags, sort by version
+          LATEST_TAG=$(git tag -l "v*" | sed 's/^v//' | sort -V | tail -1)
           PKG_VERSION="${{ steps.current_version.outputs.version }}"
-          
+
           if [ -z "$LATEST_TAG" ]; then
-            echo "No existing tags found, using package.json version as base"
+            echo "No existing version tags found, using package.json version as base"
             LATEST_VERSION="$PKG_VERSION"
           else
-            LATEST_VERSION=${LATEST_TAG#v}
-            echo "Latest tag: $LATEST_TAG (version: $LATEST_VERSION)"
+            LATEST_VERSION="$LATEST_TAG"
+            echo "Latest version tag: v$LATEST_TAG (version: $LATEST_VERSION)"
             echo "Package.json version: $PKG_VERSION"
           fi
-          
+
           echo "latest_version=$LATEST_VERSION" >> $GITHUB_OUTPUT
           echo "Base version for increment: $LATEST_VERSION"
 
@@ -125,6 +126,9 @@ jobs:
             if echo "${{ github.event.head_commit.message }}" | grep -qi "\[skip release\]"; then
               echo "Release skipped by commit message"
               echo "should_release=false" >> $GITHUB_OUTPUT
+            elif echo "${{ github.event.head_commit.message }}" | grep -qi "update"; then
+              echo "Update commit detected, skipping automatic release"
+              echo "should_release=false" >> $GITHUB_OUTPUT
             else
               echo "should_release=true" >> $GITHUB_OUTPUT
             fi
@@ -135,12 +139,15 @@ jobs:
         run: |
           NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
           TAG="v$NEXT_VERSION"
-          
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
+          echo "Creating tag: $TAG for version: $NEXT_VERSION"
           git tag -a "$TAG" -m "Release $NEXT_VERSION"
+
+          echo "Pushing tag to origin..."
           git push origin "$TAG"
-          
-          echo "Created and pushed tag: $TAG"
+
+          echo "Successfully created and pushed tag: $TAG"
 
