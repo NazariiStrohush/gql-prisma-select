@@ -56,16 +56,16 @@ jobs:
       - name: Get latest tag
         id: get_tag
         run: |
-          # Get all version tags, filter out non-version tags, sort by version
-          LATEST_TAG=$(git tag -l "v*" | sed 's/^v//' | sort -V | tail -1)
+          # Get all semantic version tags (with or without v prefix), sort by version
+          LATEST_TAG=$(git tag -l | grep -E "^[0-9]+\.[0-9]+\.[0-9]+$" | sort -V | tail -1)
           PKG_VERSION="${{ steps.current_version.outputs.version }}"
 
           if [ -z "$LATEST_TAG" ]; then
-            echo "No existing version tags found, using package.json version as base"
+            echo "No existing semantic version tags found, using package.json version as base"
             LATEST_VERSION="$PKG_VERSION"
           else
             LATEST_VERSION="$LATEST_TAG"
-            echo "Latest version tag: v$LATEST_TAG (version: $LATEST_VERSION)"
+            echo "Latest version tag: $LATEST_TAG (version: $LATEST_VERSION)"
             echo "Package.json version: $PKG_VERSION"
           fi
 
@@ -118,16 +118,16 @@ jobs:
         id: check_version
         run: |
           NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
-          if git rev-parse "v$NEXT_VERSION" >/dev/null 2>&1; then
-            echo "Version v$NEXT_VERSION already exists, skipping release"
+          if git rev-parse "$NEXT_VERSION" >/dev/null 2>&1; then
+            echo "Version $NEXT_VERSION already exists, skipping release"
             echo "should_release=false" >> $GITHUB_OUTPUT
           else
             # Check if commit message contains [skip release]
             if echo "${{ github.event.head_commit.message }}" | grep -qi "\[skip release\]"; then
               echo "Release skipped by commit message"
               echo "should_release=false" >> $GITHUB_OUTPUT
-            elif echo "${{ github.event.head_commit.message }}" | grep -qi "update"; then
-              echo "Update commit detected, skipping automatic release"
+            elif echo "${{ github.event.head_commit.message }}" | grep -qi "update\|dependency\|package"; then
+              echo "Dependency/package update detected, skipping automatic release"
               echo "should_release=false" >> $GITHUB_OUTPUT
             else
               echo "should_release=true" >> $GITHUB_OUTPUT
@@ -138,7 +138,7 @@ jobs:
         if: steps.check_version.outputs.should_release == 'true'
         run: |
           NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
-          TAG="v$NEXT_VERSION"
+          TAG="$NEXT_VERSION"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
