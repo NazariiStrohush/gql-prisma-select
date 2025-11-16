@@ -7,7 +7,7 @@
     "outDir": "dist",
     "baseUrl": "./",
     "lib": ["es2018"],
-//    "strict": true,
+    "strict": true,
     "esModuleInterop": true
   },
   "exclude": ["node_modules", "dist"]

@@ -405,10 +405,13 @@ describe('GQLPrismaSelect', () => {
         const fieldNodes = [createFragmentSpreadNode('NonExistentFragment')];
         const info = createMockGraphQLInfo(fieldNodes, {});
 
-        // This should throw an error or handle gracefully
+        // Should handle gracefully without throwing
         expect(() => {
           new GQLPrismaSelect(info);
-        }).toThrow();
+        }).not.toThrow();
+        
+        const result = new GQLPrismaSelect(info);
+        expect(result).toBeInstanceOf(GQLPrismaSelect);
       });
     });
   });
@@ -461,7 +464,7 @@ describe('GQLPrismaSelect', () => {
           select: { id: true, email: true },
         };
 
-        const result1 = GQLPrismaSelect.get(null, selection.select);
+        const result1 = GQLPrismaSelect.get(undefined, selection.select);
         const result2 = GQLPrismaSelect.get(undefined, selection.select);
         const result3 = GQLPrismaSelect.get('', selection.select);
         const result4 = GQLPrismaSelect.get([], selection.select);
@@ -477,11 +480,9 @@ describe('GQLPrismaSelect', () => {
           select: { id: true },
         };
 
-        // When path doesn't exist, obj will be undefined
-        // and accessing obj.select will throw
-        expect(() => {
-          GQLPrismaSelect.get('nonExistent', selection.select);
-        }).toThrow();
+        // When path doesn't exist, should return undefined gracefully
+        const result = GQLPrismaSelect.get('nonExistent', selection.select);
+        expect(result).toBeUndefined();
       });
 
       it('should handle nested path access', () => {
@@ -664,11 +665,14 @@ describe('GQLPrismaSelect', () => {
         const info = createMockGraphQLInfo(fieldNodes);
         (info as any).fragments = undefined;
 
-        // Should handle undefined fragments (might throw when accessing fragments)
-        // The implementation accesses fragments, so it might throw
+        // Should handle undefined fragments gracefully without throwing
         expect(() => {
           new GQLPrismaSelect(info);
-        }).toThrow();
+        }).not.toThrow();
+        
+        const result = new GQLPrismaSelect(info);
+        expect(result).toBeInstanceOf(GQLPrismaSelect);
+        expect(result.select).toBeDefined();
       });
     });
 
@@ -678,10 +682,9 @@ describe('GQLPrismaSelect', () => {
           select: { id: true },
         };
 
-        // Should throw when trying to access non-existent path
-        expect(() => {
-          GQLPrismaSelect.get('nonExistent', selection.select);
-        }).toThrow();
+        // Should return undefined when trying to access non-existent path
+        const result = GQLPrismaSelect.get('nonExistent', selection.select);
+        expect(result).toBeUndefined();
       });
 
       it('should handle get() with empty string path', () => {
@@ -704,10 +707,9 @@ describe('GQLPrismaSelect', () => {
         };
 
         // Empty segments in path create empty string keys, which don't exist
-        // This will throw when trying to access undefined.select
-        expect(() => {
-          GQLPrismaSelect.get('a..value', selection.select);
-        }).toThrow();
+        // Should return undefined gracefully
+        const result = GQLPrismaSelect.get('a..value', selection.select);
+        expect(result).toBeUndefined();
       });
     });
   });
