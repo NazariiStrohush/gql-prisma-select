@@ -6,7 +6,10 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "prod-run": "node dist/index.js"
+    "prod-run": "node dist/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "repository": {
     "type": "git",
@@ -27,7 +30,10 @@
   },
   "homepage": "https://github.com/NazariiStrohush/gql-prisma-select#readme",
   "devDependencies": {
-    "prettier": "^2.8.3"
+    "@types/jest": "^29.5.0",
+    "jest": "^29.5.0",
+    "prettier": "^2.8.3",
+    "ts-jest": "^29.1.0"
   },
   "dependencies": {
     "apollo-reporting-protobuf": "^3.3.3",

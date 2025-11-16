@@ -1,5 +1,9 @@
 # GQLPrismaSelect
 
+[![CI](https://github.com/NazariiStrohush/gql-prisma-select/actions/workflows/ci.yml/badge.svg)](https://github.com/NazariiStrohush/gql-prisma-select/actions/workflows/ci.yml)
+[![npm version](https://badge.fury.io/js/%40nazariistrohush%2Fgql-prisma-select.svg)](https://badge.fury.io/js/%40nazariistrohush%2Fgql-prisma-select)
+[![Test Coverage](https://codecov.io/gh/NazariiStrohush/gql-prisma-select/branch/master/graph/badge.svg)](https://codecov.io/gh/NazariiStrohush/gql-prisma-select)
+
 ### Preconditions
 
 - You have to use Prisma as your ORM
