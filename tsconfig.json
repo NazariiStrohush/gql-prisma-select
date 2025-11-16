@@ -1,14 +1,15 @@
 {
   "compilerOptions": {
-    "target": "esnext",
+    "target": "ES2018",
     "module": "commonjs",
     "moduleResolution": "node",
     "declaration": true,
     "outDir": "dist",
     "baseUrl": "./",
-    "lib": ["es2018"],
+    "lib": ["ES2018"],
     "strict": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "skipLibCheck": true
   },
   "exclude": ["node_modules", "dist"]
 }
