@@ -3,129 +3,32 @@
 This document outlines the phased enhancement plan for the `gql-prisma-select` package. Each phase builds upon the previous ones while maintaining backward compatibility.
 
 ## Table of Contents
-- [Phase 1: Schema-Aware Validation & Optimization](#phase-1-schema-aware-validation--optimization)
-- [Phase 2: Query Transformation & Field Mapping](#phase-2-query-transformation--field-mapping)
-- [Phase 3: Advanced Filtering & Query Building](#phase-3-advanced-filtering--query-building)
-- [Phase 4: Caching & Performance Monitoring](#phase-4-caching--performance-monitoring)
-- [Phase 5: Batch Query Processing](#phase-5-batch-query-processing)
-- [Phase 6: Query Analysis & Recommendations](#phase-6-query-analysis--recommendations)
-- [Phase 7: Plugin System & Extensions](#phase-7-plugin-system--extensions)
-- [Phase 8: Advanced Fragment Handling](#phase-8-advanced-fragment-handling)
-- [Phase 9: Type-Safe Integration](#phase-9-type-safe-integration)
-- [Phase 10: Database-Specific Optimizations](#phase-10-database-specific-optimizations)
-- [Phase 11: Real-time Query Monitoring](#phase-11-real-time-query-monitoring)
-- [Phase 12: Migration & Compatibility Helpers](#phase-12-migration--compatibility-helpers)
-- [Phase 13: GraphQL Federation Support](#phase-13-graphql-federation-support)
-- [Phase 14: Custom Resolvers & Computed Fields](#phase-14-custom-resolvers--computed-fields)
-- [Phase 15: Import/Export & Query Templates](#phase-15-importexport--query-templates)
+- [✅ Phase 1: Query Transformation & Field Mapping (COMPLETED)](#phase-1-query-transformation--field-mapping)
+- [Phase 2: Advanced Filtering & Query Building](#phase-2-advanced-filtering--query-building)
+- [Phase 3: Caching & Performance Monitoring](#phase-3-caching--performance-monitoring)
+- [Phase 4: Batch Query Processing](#phase-4-batch-query-processing)
+- [Phase 5: Query Analysis & Recommendations](#phase-5-query-analysis--recommendations)
+- [Phase 6: Plugin System & Extensions](#phase-6-plugin-system--extensions)
+- [Phase 7: Advanced Fragment Handling](#phase-7-advanced-fragment-handling)
+- [Phase 8: Type-Safe Integration](#phase-8-type-safe-integration)
+- [Phase 9: Database-Specific Optimizations](#phase-9-database-specific-optimizations)
+- [Phase 10: Real-time Query Monitoring](#phase-10-real-time-query-monitoring)
+- [Phase 11: Migration & Compatibility Helpers](#phase-11-migration--compatibility-helpers)
+- [Phase 12: GraphQL Federation Support](#phase-12-graphql-federation-support)
+- [Phase 13: Custom Resolvers & Computed Fields](#phase-13-custom-resolvers--computed-fields)
+- [Phase 14: Import/Export & Query Templates](#phase-14-importexport--query-templates)
 
 ---
 
-## Phase 1: Schema-Aware Validation & Optimization
-
-**Goal**: Make the library aware of the Prisma schema to validate selections and optimize queries.
-
-### Implementation Details
-
-#### 1.1 Schema Parser Interface
-```typescript
-interface PrismaSchema {
-  models: Record<string, PrismaModel>;
-  enums: Record<string, string[]>;
-}
-
-interface PrismaModel {
-  name: string;
-  fields: Record<string, PrismaField>;
-  relations: Record<string, PrismaRelation>;
-}
-
-interface PrismaField {
-  name: string;
-  type: string;
-  isRequired: boolean;
-  isUnique: boolean;
-  isId: boolean;
-}
-
-interface PrismaRelation {
-  name: string;
-  type: string;
-  isRequired: boolean;
-  foreignKey: string;
-}
-```
-
-#### 1.2 Schema Loading Mechanisms
-- **File-based**: Load from `schema.prisma` file
-- **Runtime**: Accept schema object in constructor
-- **Introspection**: Auto-discover from Prisma client
-- **Caching**: Cache parsed schemas for performance
-
-#### 1.3 Validation Engine
-```typescript
-class SchemaValidator {
-  validateSelections(selections: Include, modelName: string): ValidationResult;
-
-  private validateField(fieldName: string, model: PrismaModel): ValidationError[];
-  private validateRelation(relationName: string, selections: any, model: PrismaModel): ValidationError[];
-  private checkCircularReferences(path: string[], relationName: string): boolean;
-}
-```
-
-#### 1.4 Query Optimization
-```typescript
-class QueryOptimizer {
-  optimizeInclude(include: Include, model: PrismaModel): Include;
-  optimizeSelect(select: Select, model: PrismaModel): Select;
-  suggestIndexes(selections: Include, model: PrismaModel): string[];
-}
-```
-
-#### 1.5 Constructor Integration
-```typescript
-new GQLPrismaSelect(info, {
-  schema: prismaSchema,           // Schema object or path
-  validateFields: true,           // Enable field validation
-  optimizeQueries: true,          // Enable query optimization
-  strictMode: false,              // Throw on validation errors
-  validationLevel: 'warn' | 'error' | 'silent'
-});
-```
-
-#### 1.6 Error Types
-```typescript
-class ValidationError extends Error {
-  field: string;
-  model: string;
-  type: 'MISSING_FIELD' | 'INVALID_RELATION' | 'CIRCULAR_REFERENCE';
-}
-
-class OptimizationWarning {
-  type: 'REDUNDANT_SELECTION' | 'MISSING_INDEX' | 'INEFFICIENT_QUERY';
-  suggestion: string;
-  impact: 'low' | 'medium' | 'high';
-}
-```
-
-#### 1.7 Testing Requirements
-- **Unit Tests**: Schema parsing, field validation, relation validation, circular reference detection
-- **Integration Tests**: Real Prisma schema loading, GraphQL info parsing with schema validation
-- **Regression Tests**: Ensure existing GQLPrismaSelect functionality works unchanged with schema validation enabled/disabled
-- **Performance Tests**: Measure validation overhead impact on query parsing performance
-- **Error Handling Tests**: Invalid schemas, missing fields, type mismatches, malformed relations
-- **Configuration Tests**: Validation levels (warn/error/silent), strict mode, optimization toggles
-- **Backward Compatibility Tests**: Existing code continues to work without schema option
-
----
-
-## Phase 2: Query Transformation & Field Mapping
+## ✅ Phase 1: Query Transformation & Field Mapping (COMPLETED)
 
 **Goal**: Support field name transformations and custom mappings between GraphQL and database schemas.
 
+**Status**: ✅ **COMPLETED** - Field transformations are fully implemented in the current codebase.
+
 ### Implementation Details
 
-#### 2.1 Transformation Types
+#### 1.1 Transformation Types
 ```typescript
 type FieldTransform = string | ((value: any, context: TransformContext) => any);
 
@@ -141,7 +44,7 @@ interface FieldTransforms {
 }
 ```
 
-#### 2.2 Built-in Transformers
+#### 1.2 Built-in Transformers
 ```typescript
 class FieldTransformers {
   static camelToSnake(value: string): string;
@@ -153,7 +56,7 @@ class FieldTransformers {
 }
 ```
 
-#### 2.3 Transformation Engine
+#### 1.3 Transformation Engine
 ```typescript
 class TransformationEngine {
   constructor(transforms: FieldTransforms);
@@ -165,7 +68,7 @@ class TransformationEngine {
 }
 ```
 
-#### 2.4 Configuration Options
+#### 1.4 Configuration Options
 ```typescript
 interface TransformOptions {
   fieldTransforms?: FieldTransforms;
@@ -177,7 +80,7 @@ interface TransformOptions {
 }
 ```
 
-#### 2.5 Result Transformation
+#### 1.5 Result Transformation
 ```typescript
 class ResultTransformer {
   transform(result: any, selections: Include, transforms: FieldTransforms): any;
@@ -186,18 +89,18 @@ class ResultTransformer {
 }
 ```
 
-#### 2.6 Integration Points
+#### 1.6 Integration Points
 - Constructor option: `transforms: TransformOptions`
 - Static method: `GQLPrismaSelect.withTransforms(info, transforms)`
 - Instance method: `selector.transformResult(result)`
 
-#### 2.7 Performance Considerations
+#### 1.7 Performance Considerations
 - Cache transformed field names
 - Lazy transformation of results
 - Batch transformation for arrays
 - Memory-efficient streaming for large datasets
 
-#### 2.8 Testing Requirements
+#### 1.8 Testing Requirements
 - **Unit Tests**: Built-in transformers (camelToSnake, pluralize), custom transformer functions, transformation context handling
 - **Integration Tests**: Full transformation pipeline with GraphQL info, result transformation back to GraphQL format
 - **Field Mapping Tests**: GraphQL to database field name transformations, nested relation transformations, enum transformations
@@ -209,13 +112,13 @@ class ResultTransformer {
 
 ---
 
-## Phase 3: Advanced Filtering & Query Building
+## Phase 2: Advanced Filtering & Query Building
 
 **Goal**: Build complete Prisma queries with where clauses, ordering, and pagination.
 
 ### Implementation Details
 
-#### 3.1 Query Builder Interface
+#### 2.1 Query Builder Interface
 ```typescript
 interface QueryOptions {
   where?: Prisma.WhereInput;
@@ -237,7 +140,7 @@ interface AdvancedQueryOptions extends QueryOptions {
 }
 ```
 
-#### 3.2 Query Builder Class
+#### 2.2 Query Builder Class
 ```typescript
 class PrismaQueryBuilder {
   constructor(selector: GQLPrismaSelect);
@@ -252,7 +155,7 @@ class PrismaQueryBuilder {
 }
 ```
 
-#### 3.3 Filter Integration
+#### 2.3 Filter Integration
 ```typescript
 interface FilterOptions {
   userId?: string;              // For user-specific filtering
@@ -270,7 +173,7 @@ class QueryFilters {
 }
 ```
 
-#### 3.4 Builder Integration
+#### 2.4 Builder Integration
 ```typescript
 // Instance method
 const query = selector.buildQuery({
@@ -288,7 +191,7 @@ const query = GQLPrismaSelect.buildQuery(info, {
 });
 ```
 
-#### 3.5 Advanced Features
+#### 2.5 Advanced Features
 ```typescript
 interface AggregationOptions {
   groupBy?: string[];
@@ -310,7 +213,7 @@ class AggregationBuilder {
 }
 ```
 
-#### 3.6 Type Safety
+#### 2.6 Type Safety
 ```typescript
 // Type-safe query building
 type SafeQuery<T extends Prisma.ModelName> = {
@@ -321,7 +224,7 @@ type SafeQuery<T extends Prisma.ModelName> = {
 };
 ```
 
-#### 3.7 Testing Requirements
+#### 2.7 Testing Requirements
 - **Unit Tests**: QueryBuilder methods (where, orderBy, paginate), filter application logic, aggregation building
 - **Integration Tests**: Complete query building pipeline, Prisma client execution with built queries
 - **Filter Tests**: User filtering, tenant filtering, soft delete filtering, RLS application, permission-based filtering
@@ -334,13 +237,13 @@ type SafeQuery<T extends Prisma.ModelName> = {
 
 ---
 
-## Phase 4: Caching & Performance Monitoring
+## Phase 3: Caching & Performance Monitoring
 
 **Goal**: Implement intelligent caching and performance monitoring capabilities.
 
 ### Implementation Details
 
-#### 4.1 Cache System Architecture
+#### 3.1 Cache System Architecture
 ```typescript
 interface CacheConfig {
   enabled: boolean;
@@ -371,7 +274,7 @@ class QueryCache {
 }
 ```
 
-#### 4.2 Cache Key Generation
+#### 3.2 Cache Key Generation
 ```typescript
 class CacheKeyGenerator {
   static generate(info: GraphQLResolveInfo, options?: any): string;
@@ -384,7 +287,7 @@ class CacheKeyGenerator {
 }
 ```
 
-#### 4.3 Performance Monitoring
+#### 3.3 Performance Monitoring
 ```typescript
 interface PerformanceMetrics {
   queryCount: number;
@@ -417,7 +320,7 @@ class PerformanceMonitor {
 }
 ```
 
-#### 4.4 Integration Points
+#### 3.4 Integration Points
 ```typescript
 new GQLPrismaSelect(info, {
   cache: {
@@ -439,7 +342,7 @@ GQLPrismaSelect.clearCache();
 GQLPrismaSelect.getPerformanceMetrics();
 ```
 
-#### 4.5 Cache Strategies
+#### 3.5 Cache Strategies
 ```typescript
 class CacheStrategies {
   static LRU: CacheStrategy;      // Least Recently Used
@@ -454,7 +357,7 @@ interface CacheStrategy {
 }
 ```
 
-#### 4.6 Memory Management
+#### 3.6 Memory Management
 ```typescript
 class MemoryManager {
   static getMemoryUsage(): MemoryStats;
@@ -466,7 +369,7 @@ class MemoryManager {
 }
 ```
 
-#### 4.7 Testing Requirements
+#### 3.7 Testing Requirements
 - **Unit Tests**: Cache strategies (LRU, LFU, TTL), cache key generation, cache entry lifecycle, compression/decompression
 - **Integration Tests**: Full caching pipeline with GraphQL queries, cache hit/miss scenarios, cache invalidation
 - **Performance Tests**: Cache hit rate measurement, memory usage monitoring, cache strategy effectiveness, slow query detection
@@ -478,13 +381,13 @@ class MemoryManager {
 
 ---
 
-## Phase 5: Batch Query Processing
+## Phase 4: Batch Query Processing
 
 **Goal**: Process multiple GraphQL queries efficiently with shared selections.
 
 ### Implementation Details
 
-#### 5.1 Batch Processor Interface
+#### 4.1 Batch Processor Interface
 ```typescript
 interface BatchQuery {
   info: GraphQLResolveInfo;
@@ -508,7 +411,7 @@ interface OptimizedBatchQuery {
 }
 ```
 
-#### 5.2 Batch Processor Class
+#### 4.2 Batch Processor Class
 ```typescript
 class BatchProcessor {
   constructor(queries: BatchQuery[]);
@@ -523,7 +426,7 @@ class BatchProcessor {
 }
 ```
 
-#### 5.3 Selection Merging
+#### 4.3 Selection Merging
 ```typescript
 interface SharedSelection {
   path: string;
@@ -541,7 +444,7 @@ class SelectionMerger {
 }
 ```
 
-#### 5.4 Dependency Analysis
+#### 4.4 Dependency Analysis
 ```typescript
 interface DependencyGraph {
   nodes: DependencyNode[];
@@ -563,7 +466,7 @@ class DependencyAnalyzer {
 }
 ```
 
-#### 5.5 Execution Planning
+#### 4.5 Execution Planning
 ```typescript
 interface ExecutionPlan {
   phases: ExecutionPhase[];
@@ -586,7 +489,7 @@ class ExecutionPlanner {
 }
 ```
 
-#### 5.6 Usage Examples
+#### 4.6 Usage Examples
 ```typescript
 // Basic batch processing
 const batch = new GQLPrismaSelect.BatchProcessor([
@@ -605,13 +508,13 @@ const batch = new GQLPrismaSelect.BatchProcessor([
 ]);
 ```
 
-#### 5.7 Performance Optimizations
+#### 4.7 Performance Optimizations
 - **Parallel Execution**: Execute independent queries in parallel
 - **Shared Selections**: Merge common selection patterns
 - **Connection Pooling**: Optimize database connections
 - **Result Deduplication**: Avoid fetching duplicate data
 
-#### 5.8 Testing Requirements
+#### 4.8 Testing Requirements
 - **Unit Tests**: Dependency analysis, selection merging logic, execution planning, result splitting
 - **Integration Tests**: Full batch processing pipeline, parallel execution verification, result combination accuracy
 - **Dependency Tests**: Cycle detection, dependency graph construction, execution order optimization
@@ -624,13 +527,13 @@ const batch = new GQLPrismaSelect.BatchProcessor([
 
 ---
 
-## Phase 6: Query Analysis & Recommendations
+## Phase 5: Query Analysis & Recommendations
 
 **Goal**: Analyze queries and provide optimization recommendations.
 
 ### Implementation Details
 
-#### 6.1 Analysis Engine
+#### 5.1 Analysis Engine
 ```typescript
 interface QueryAnalysis {
   complexity: 'low' | 'medium' | 'high' | 'critical';
@@ -660,7 +563,7 @@ interface Recommendation {
 }
 ```
 
-#### 6.2 Analysis Rules
+#### 5.2 Analysis Rules
 ```typescript
 class AnalysisRules {
   static analyzeDepth(selections: Include, maxDepth: number = 5): AnalysisIssue[];
@@ -672,7 +575,7 @@ class AnalysisRules {
 }
 ```
 
-#### 6.3 Query Analyzer Class
+#### 5.3 Query Analyzer Class
 ```typescript
 class QueryAnalyzer {
   constructor(schema?: PrismaSchema);
@@ -687,7 +590,7 @@ class QueryAnalyzer {
 }
 ```
 
-#### 6.4 Integration Methods
+#### 5.4 Integration Methods
 ```typescript
 // Instance method
 const analysis = selector.analyze();
@@ -701,7 +604,7 @@ const analyzer = new GQLPrismaSelect.QueryAnalyzer(prismaSchema);
 const analysis = analyzer.analyze(selector);
 ```
 
-#### 6.5 Performance Insights
+#### 5.5 Performance Insights
 ```typescript
 interface PerformanceInsights {
   executionTime: number;
@@ -719,7 +622,7 @@ class PerformanceAnalyzer {
 }
 ```
 
-#### 6.6 Reporting System
+#### 5.6 Reporting System
 ```typescript
 interface AnalysisReport {
   summary: QueryAnalysis;
@@ -735,7 +638,7 @@ class AnalysisReporter {
 }
 ```
 
-#### 6.7 Testing Requirements
+#### 5.7 Testing Requirements
 - **Unit Tests**: Analysis rules (depth, breadth, N+1 detection), complexity calculation, recommendation generation
 - **Integration Tests**: Full analysis pipeline with GraphQL info, schema-aware analysis, performance insights accuracy
 - **Analysis Tests**: N+1 query detection accuracy, Cartesian product identification, index suggestion relevance
@@ -747,13 +650,13 @@ class AnalysisReporter {
 
 ---
 
-## Phase 7: Plugin System & Extensions
+## Phase 6: Plugin System & Extensions
 
 **Goal**: Create an extensible plugin architecture for custom functionality.
 
 ### Implementation Details
 
-#### 7.1 Plugin Interface
+#### 6.1 Plugin Interface
 ```typescript
 interface GQLPlugin {
   name: string;
@@ -784,7 +687,7 @@ interface PluginConfig {
 }
 ```
 
-#### 7.2 Plugin Manager
+#### 6.2 Plugin Manager
 ```typescript
 class PluginManager {
   static plugins: Map<string, GQLPlugin> = new Map();
@@ -799,7 +702,7 @@ class PluginManager {
 }
 ```
 
-#### 7.3 Built-in Plugins
+#### 6.3 Built-in Plugins
 ```typescript
 // Authentication Plugin
 class AuthPlugin implements GQLPlugin {
@@ -826,7 +729,7 @@ class LoggingPlugin implements GQLPlugin {
 }
 ```
 
-#### 7.4 Plugin Integration
+#### 6.4 Plugin Integration
 ```typescript
 // Register plugins
 GQLPrismaSelect.use(new AuthPlugin({
@@ -850,7 +753,7 @@ new GQLPrismaSelect(info, {
 });
 ```
 
-#### 7.5 Plugin Development Kit
+#### 6.5 Plugin Development Kit
 ```typescript
 interface PluginContext {
   selector: GQLPrismaSelect;
@@ -874,7 +777,7 @@ abstract class BasePlugin implements GQLPlugin {
 }
 ```
 
-#### 7.6 Plugin Store & Marketplace
+#### 6.6 Plugin Store & Marketplace
 ```typescript
 class PluginStore {
   static async search(query: string): Promise<PluginInfo[]>;
@@ -885,7 +788,7 @@ class PluginStore {
 }
 ```
 
-#### 7.7 Testing Requirements
+#### 6.7 Testing Requirements
 - **Unit Tests**: Plugin lifecycle hooks, hook execution order, plugin registration/deregistration, built-in plugins
 - **Integration Tests**: Plugin loading and execution, multiple plugin interactions, plugin configuration validation
 - **Plugin Tests**: Authentication plugin access control, validation plugin input sanitization, caching plugin cache operations
@@ -898,13 +801,13 @@ class PluginStore {
 
 ---
 
-## Phase 8: Advanced Fragment Handling
+## Phase 7: Advanced Fragment Handling
 
 **Goal**: Enhanced support for GraphQL fragments with advanced features.
 
 ### Implementation Details
 
-#### 8.1 Fragment Registry
+#### 7.1 Fragment Registry
 ```typescript
 interface FragmentDefinition {
   name: string;
@@ -932,7 +835,7 @@ class FragmentRegistry {
 }
 ```
 
-#### 8.2 Fragment Optimizer
+#### 7.2 Fragment Optimizer
 ```typescript
 class FragmentOptimizer {
   static inline(fragment: FragmentDefinition, usageThreshold: number): Include;
@@ -942,7 +845,7 @@ class FragmentOptimizer {
 }
 ```
 
-#### 8.3 Fragment Overrides
+#### 7.3 Fragment Overrides
 ```typescript
 interface FragmentOverride {
   fragmentName: string;
@@ -960,7 +863,7 @@ class FragmentOverrider {
 }
 ```
 
-#### 8.4 Dynamic Fragments
+#### 7.4 Dynamic Fragments
 ```typescript
 interface DynamicFragment {
   name: string;
@@ -975,7 +878,7 @@ class DynamicFragmentHandler {
 }
 ```
 
-#### 8.5 Fragment Caching
+#### 7.5 Fragment Caching
 ```typescript
 class FragmentCache {
   constructor(config: CacheConfig);
@@ -991,7 +894,7 @@ class FragmentCache {
 }
 ```
 
-#### 8.6 Integration Options
+#### 7.6 Integration Options
 ```typescript
 new GQLPrismaSelect(info, {
   fragments: {
@@ -1020,7 +923,7 @@ new GQLPrismaSelect(info, {
 });
 ```
 
-#### 8.7 Fragment Analysis
+#### 7.7 Fragment Analysis
 ```typescript
 interface FragmentAnalysis {
   fragments: FragmentDefinition[];
@@ -1035,7 +938,7 @@ class FragmentAnalyzer {
 }
 ```
 
-#### 8.8 Testing Requirements
+#### 7.8 Testing Requirements
 - **Unit Tests**: Fragment registration/deregistration, fragment inlining logic, override application, dynamic fragment evaluation
 - **Integration Tests**: Full fragment processing pipeline, nested fragment handling, fragment caching effectiveness
 - **Fragment Tests**: Override application accuracy, dynamic fragment conditional logic, compatible fragment merging
@@ -1048,13 +951,13 @@ class FragmentAnalyzer {
 
 ---
 
-## Phase 9: Type-Safe Integration
+## Phase 8: Type-Safe Integration
 
 **Goal**: Provide TypeScript utilities for type-safe query building.
 
 ### Implementation Details
 
-#### 9.1 Type Inference Utilities
+#### 8.1 Type Inference Utilities
 ```typescript
 // Infer selection types from GraphQL schema
 type InferSelection<T> = T extends object
@@ -1070,7 +973,7 @@ type SafeSelect<TGraphQL, TPrisma extends keyof Prisma.TypeMap> =
   InferSelection<TGraphQL> & PrismaSelect<TPrisma>;
 ```
 
-#### 9.2 Type-Safe Constructor
+#### 8.2 Type-Safe Constructor
 ```typescript
 class TypedGQLPrismaSelect<
   TGraphQL,
@@ -1090,7 +993,7 @@ const selector = new TypedGQLPrismaSelect<User, 'User'>(info);
 const select = selector.getTypedSelect(); // Fully typed
 ```
 
-#### 9.3 Schema Type Generation
+#### 8.3 Schema Type Generation
 ```typescript
 interface TypeGenerationOptions {
   output: string;                    // Output directory
@@ -1108,7 +1011,7 @@ class TypeGenerator {
 }
 ```
 
-#### 9.4 Runtime Type Validation
+#### 8.4 Runtime Type Validation
 ```typescript
 interface TypeValidationOptions {
   strict: boolean;                  // Throw on type mismatches
@@ -1132,7 +1035,7 @@ class TypeValidator {
 }
 ```
 
-#### 9.5 IntelliSense Support
+#### 8.5 IntelliSense Support
 ```typescript
 // Declaration merging for better IntelliSense
 declare module '@nazariistrohush/gql-prisma-select' {
@@ -1152,7 +1055,7 @@ declare module '@nazariistrohush/gql-prisma-select' {
 }
 ```
 
-#### 9.6 Builder Pattern with Types
+#### 8.6 Builder Pattern with Types
 ```typescript
 class TypedQueryBuilder<TModel extends Prisma.ModelName> {
   constructor(model: TModel);
@@ -1166,7 +1069,7 @@ class TypedQueryBuilder<TModel extends Prisma.ModelName> {
 }
 ```
 
-#### 9.7 Integration with Popular Libraries
+#### 8.7 Integration with Popular Libraries
 ```typescript
 // Integration with Nexus
 import { GQLPrismaSelect } from '@nazariistrohush/gql-prisma-select';
@@ -1187,7 +1090,7 @@ export const UserQuery = queryField('user', {
 });
 ```
 
-#### 9.8 Testing Requirements
+#### 8.8 Testing Requirements
 - **Type Tests**: TypeScript compilation tests for type-safe constructors, type inference accuracy, IntelliSense support validation
 - **Unit Tests**: Type generation logic, type validation functions, schema type inference, runtime type checking
 - **Integration Tests**: Full type-safe workflow with GraphQL schema, Prisma client integration, popular library integrations
@@ -1200,13 +1103,13 @@ export const UserQuery = queryField('user', {
 
 ---
 
-## Phase 10: Database-Specific Optimizations
+## Phase 9: Database-Specific Optimizations
 
 **Goal**: Optimize queries for specific database engines.
 
 ### Implementation Details
 
-#### 10.1 Database Adapter Interface
+#### 9.1 Database Adapter Interface
 ```typescript
 interface DatabaseAdapter {
   name: string;
@@ -1236,7 +1139,7 @@ interface IndexSuggestion {
 }
 ```
 
-#### 10.2 Built-in Adapters
+#### 9.2 Built-in Adapters
 ```typescript
 class PostgreSQLAdapter implements DatabaseAdapter {
   optimizeQuery(query: Prisma.Args): Prisma.Args;
@@ -1262,7 +1165,7 @@ class MongoDBAdapter implements DatabaseAdapter {
 }
 ```
 
-#### 10.3 Query Optimizer
+#### 9.3 Query Optimizer
 ```typescript
 class DatabaseOptimizer {
   constructor(adapter: DatabaseAdapter);
@@ -1291,7 +1194,7 @@ interface OptimizationAnalysis {
 }
 ```
 
-#### 10.4 Index Manager
+#### 9.4 Index Manager
 ```typescript
 class IndexManager {
   constructor(adapter: DatabaseAdapter);
@@ -1313,7 +1216,7 @@ interface IndexUsage {
 }
 ```
 
-#### 10.5 Integration
+#### 9.5 Integration
 ```typescript
 new GQLPrismaSelect(info, {
   database: {
@@ -1334,7 +1237,7 @@ GQLPrismaSelect.detectDatabase(prismaClient).then(adapter => {
 });
 ```
 
-#### 10.6 Performance Monitoring
+#### 9.6 Performance Monitoring
 ```typescript
 interface DatabaseMetrics {
   queryCount: number;
@@ -1353,7 +1256,7 @@ class DatabaseMonitor {
 }
 ```
 
-#### 10.7 Testing Requirements
+#### 9.7 Testing Requirements
 - **Unit Tests**: Database adapter interfaces, query optimization logic, index suggestion algorithms, database capability detection
 - **Integration Tests**: Full optimization pipeline with different database adapters, real query optimization scenarios
 - **Database Adapter Tests**: PostgreSQL optimizations, MySQL join optimizations, SQLite query handling, MongoDB aggregation
@@ -1367,13 +1270,13 @@ class DatabaseMonitor {
 
 ---
 
-## Phase 11: Real-time Query Monitoring
+## Phase 10: Real-time Query Monitoring
 
 **Goal**: Monitor query performance and provide real-time insights.
 
 ### Implementation Details
 
-#### 11.1 Metrics Collector
+#### 10.1 Metrics Collector
 ```typescript
 interface QueryMetrics {
   id: string;
@@ -1414,7 +1317,7 @@ interface AggregatedMetrics {
 }
 ```
 
-#### 11.2 Alert System
+#### 10.2 Alert System
 ```typescript
 interface AlertRule {
   id: string;
@@ -1444,7 +1347,7 @@ class AlertManager {
 }
 ```
 
-#### 11.3 Dashboard Integration
+#### 10.3 Dashboard Integration
 ```typescript
 interface DashboardWidget {
   id: string;
@@ -1468,7 +1371,7 @@ class MetricsDashboard {
 }
 ```
 
-#### 11.4 Integration Points
+#### 10.4 Integration Points
 ```typescript
 new GQLPrismaSelect(info, {
   monitoring: {
@@ -1493,7 +1396,7 @@ GQLPrismaSelect.on('slowQuery', (query: SlowQuery) => {
 });
 ```
 
-#### 11.5 Exporters
+#### 10.5 Exporters
 ```typescript
 interface MetricsExporter {
   name: string;
@@ -1517,7 +1420,7 @@ class CloudWatchExporter implements MetricsExporter {
 }
 ```
 
-#### 11.6 Performance Profiling
+#### 10.6 Performance Profiling
 ```typescript
 class QueryProfiler {
   constructor();
@@ -1542,7 +1445,7 @@ interface ProfileResult {
 }
 ```
 
-#### 11.7 Testing Requirements
+#### 10.7 Testing Requirements
 - **Unit Tests**: Metrics collection accuracy, alert rule evaluation, exporter functionality, profiler instrumentation
 - **Integration Tests**: Full monitoring pipeline, real-time metrics collection, alert triggering scenarios
 - **Monitoring Tests**: Query metrics recording accuracy, cache hit/miss tracking, slow query identification
@@ -1556,13 +1459,13 @@ interface ProfileResult {
 
 ---
 
-## Phase 12: Migration & Compatibility Helpers
+## Phase 11: Migration & Compatibility Helpers
 
 **Goal**: Help users migrate between schema versions and maintain compatibility.
 
 ### Implementation Details
 
-#### 12.1 Schema Diffing
+#### 11.1 Schema Diffing
 ```typescript
 interface SchemaDiff {
   breaking: BreakingChange[];
@@ -1594,7 +1497,7 @@ class SchemaDiffer {
 }
 ```
 
-#### 12.2 Compatibility Checker
+#### 11.2 Compatibility Checker
 ```typescript
 interface CompatibilityReport {
   score: number;  // 0-100 compatibility score
@@ -1610,7 +1513,7 @@ class CompatibilityChecker {
 }
 ```
 
-#### 12.3 Migration Helpers
+#### 11.3 Migration Helpers
 ```typescript
 interface MigrationPlan {
   steps: MigrationStep[];
@@ -1635,7 +1538,7 @@ class MigrationHelper {
 }
 ```
 
-#### 12.4 Version Management
+#### 11.4 Version Management
 ```typescript
 interface SchemaVersion {
   id: string;
@@ -1658,7 +1561,7 @@ class VersionManager {
 }
 ```
 
-#### 12.5 Automated Migration
+#### 11.5 Automated Migration
 ```typescript
 class AutoMigrator {
   constructor(config: MigrationConfig);
@@ -1673,7 +1576,7 @@ class AutoMigrator {
 }
 ```
 
-#### 12.6 Integration
+#### 11.6 Integration
 ```typescript
 // Automatic compatibility checking
 new GQLPrismaSelect(info, {
@@ -1694,7 +1597,7 @@ GQLPrismaSelect.migrate({
 });
 ```
 
-#### 12.7 Testing Requirements
+#### 11.7 Testing Requirements
 - **Unit Tests**: Schema diffing logic, compatibility checking, migration plan generation, version management
 - **Integration Tests**: Full migration pipeline, schema version transitions, automated migration execution
 - **Migration Tests**: Breaking change detection accuracy, migration suggestion relevance, rollback plan validation
@@ -1709,13 +1612,13 @@ GQLPrismaSelect.migrate({
 
 ---
 
-## Phase 13: GraphQL Federation Support
+## Phase 12: GraphQL Federation Support
 
 **Goal**: Support Apollo Federation directives and entities.
 
 ### Implementation Details
 
-#### 13.1 Federation Parser
+#### 12.1 Federation Parser
 ```typescript
 interface FederationEntity {
   type: string;
@@ -1747,7 +1650,7 @@ class FederationParser {
 }
 ```
 
-#### 13.2 Entity Resolver
+#### 12.2 Entity Resolver
 ```typescript
 class FederationResolver {
   constructor(entities: FederationEntity[]);
@@ -1762,7 +1665,7 @@ class FederationResolver {
 }
 ```
 
-#### 13.3 Federation-Aware Selector
+#### 12.3 Federation-Aware Selector
 ```typescript
 class FederationGQLPrismaSelect extends GQLPrismaSelect {
   constructor(
@@ -1786,7 +1689,7 @@ interface FederationConfig {
 }
 ```
 
-#### 13.4 Subgraph Support
+#### 12.4 Subgraph Support
 ```typescript
 interface SubgraphConfig {
   name: string;
@@ -1806,7 +1709,7 @@ class SubgraphManager {
 }
 ```
 
-#### 13.5 Federation Integration
+#### 12.5 Federation Integration
 ```typescript
 // Federation-aware usage
 const selector = new GQLPrismaSelect(info, {
@@ -1832,7 +1735,7 @@ const gatewaySelector = new GQLPrismaSelect(info, {
 });
 ```
 
-#### 13.6 Federation Testing
+#### 12.6 Federation Testing
 ```typescript
 class FederationTester {
   static testEntityResolution(
@@ -1852,7 +1755,7 @@ class FederationTester {
 }
 ```
 
-#### 13.7 Testing Requirements
+#### 12.7 Testing Requirements
 - **Unit Tests**: Federation parser logic, entity resolution algorithms, subgraph query routing, federation directive parsing
 - **Integration Tests**: Full federation workflow, entity resolution across subgraphs, gateway coordination
 - **Entity Resolution Tests**: Key field matching accuracy, reference resolution correctness, entity representation handling
@@ -1866,13 +1769,13 @@ class FederationTester {
 
 ---
 
-## Phase 14: Custom Resolvers & Computed Fields
+## Phase 13: Custom Resolvers & Computed Fields
 
 **Goal**: Support custom field resolvers and computed properties.
 
 ### Implementation Details
 
-#### 14.1 Resolver Interface
+#### 13.1 Resolver Interface
 ```typescript
 interface CustomResolver {
   field: string;
@@ -1895,7 +1798,7 @@ interface ResolverCache {
 }
 ```
 
-#### 14.2 Computed Field Manager
+#### 13.2 Computed Field Manager
 ```typescript
 class ComputedFieldManager {
   constructor(resolvers: CustomResolver[]);
@@ -1911,7 +1814,7 @@ class ComputedFieldManager {
 }
 ```
 
-#### 14.3 Resolver Integration
+#### 13.3 Resolver Integration
 ```typescript
 new GQLPrismaSelect(info, {
   resolvers: {
@@ -1928,7 +1831,7 @@ new GQLPrismaSelect(info, {
 });
 ```
 
-#### 14.4 Batch Resolvers
+#### 13.4 Batch Resolvers
 ```typescript
 interface BatchResolver {
   field: string;
@@ -1955,7 +1858,7 @@ class BatchResolverManager {
 }
 ```
 
-#### 14.5 Resolver Dependencies
+#### 13.5 Resolver Dependencies
 ```typescript
 class ResolverDependencyAnalyzer {
   static analyze(resolvers: CustomResolver[]): DependencyGraph;
@@ -1967,7 +1870,7 @@ class ResolverDependencyAnalyzer {
 }
 ```
 
-#### 14.6 Integration with Selection
+#### 13.6 Integration with Selection
 ```typescript
 class ResolverAwareSelector extends GQLPrismaSelect {
   constructor(info: GraphQLResolveInfo, resolvers: CustomResolver[]);
@@ -1988,7 +1891,7 @@ interface ResolvedSelection {
 }
 ```
 
-#### 14.7 Testing Support
+#### 13.7 Testing Support
 ```typescript
 class ResolverTester {
   static testResolver(resolver: CustomResolver, testCases: TestCase[]): TestResult[];
@@ -2000,7 +1903,7 @@ class ResolverTester {
 }
 ```
 
-#### 14.8 Testing Requirements
+#### 13.8 Testing Requirements
 - **Unit Tests**: Resolver execution logic, batch resolver optimization, dependency analysis, resolver chain building
 - **Integration Tests**: Full resolver pipeline with GraphQL queries, computed field execution, batch resolution scenarios
 - **Resolver Tests**: Custom resolver execution accuracy, dependency resolution correctness, caching functionality
@@ -2014,13 +1917,13 @@ class ResolverTester {
 
 ---
 
-## Phase 15: Import/Export & Query Templates
+## Phase 14: Import/Export & Query Templates
 
 **Goal**: Support saving, sharing, and reusing query patterns.
 
 ### Implementation Details
 
-#### 15.1 Template Interface
+#### 14.1 Template Interface
 ```typescript
 interface QueryTemplate {
   id: string;
@@ -2061,7 +1964,7 @@ interface TemplateMetadata {
 }
 ```
 
-#### 15.2 Template Manager
+#### 14.2 Template Manager
 ```typescript
 class TemplateManager {
   constructor(storage: TemplateStorage);
@@ -2079,7 +1982,7 @@ class TemplateManager {
 }
 ```
 
-#### 15.3 Template Registry
+#### 14.3 Template Registry
 ```typescript
 class TemplateRegistry {
   static register(template: QueryTemplate): void;
@@ -2095,7 +1998,7 @@ class TemplateRegistry {
 }
 ```
 
-#### 15.4 Template Variables
+#### 14.4 Template Variables
 ```typescript
 class TemplateVariableResolver {
   static resolve(template: QueryTemplate, variables: any): QueryTemplate;
@@ -2107,7 +2010,7 @@ class TemplateVariableResolver {
 }
 ```
 
-#### 15.5 Export/Import System
+#### 14.5 Export/Import System
 ```typescript
 interface ExportOptions {
   format: 'json' | 'yaml' | 'typescript';
@@ -2136,7 +2039,7 @@ class TemplateImporter {
 }
 ```
 
-#### 15.6 Template Marketplace
+#### 14.6 Template Marketplace
 ```typescript
 interface MarketplaceTemplate extends QueryTemplate {
   downloads: number;
@@ -2160,7 +2063,7 @@ class TemplateMarketplace {
 }
 ```
 
-#### 15.7 Integration
+#### 14.7 Integration
 ```typescript
 // Save a query as template
 const template = await GQLPrismaSelect.saveAsTemplate(selector, {
@@ -2185,7 +2088,7 @@ const exported = GQLPrismaSelect.exportTemplates(['template1', 'template2'], {
 await GQLPrismaSelect.importTemplates(exportedData);
 ```
 
-#### 15.8 CLI Tools
+#### 14.8 CLI Tools
 ```typescript
 // CLI commands for template management
 GQLPrismaSelect.cli()
@@ -2203,7 +2106,7 @@ GQLPrismaSelect.cli()
   });
 ```
 
-#### 15.9 Testing Requirements
+#### 14.9 Testing Requirements
 - **Unit Tests**: Template creation/validation, variable resolution, export/import logic, marketplace operations
 - **Integration Tests**: Full template lifecycle, CLI command execution, marketplace interactions
 - **Template Tests**: Template application accuracy, variable substitution correctness, metadata validation
@@ -2222,23 +2125,22 @@ GQLPrismaSelect.cli()
 
 | Phase | Priority | Est. Effort | Testing Effort | Dependencies | Key Features | Testing Focus |
 |-------|----------|-------------|----------------|--------------|--------------|---------------|
-| 1. Schema Validation | High | 2-3 weeks | 1-2 weeks | None | Schema awareness, field validation | Unit, Integration, Regression, Performance |
-| 2. Field Transforms | High | 1-2 weeks | 1 week | Phase 1 | Field mapping, transformations | Unit, Integration, Transformation, Performance |
-| 3. Query Building | High | 2-3 weeks | 1-2 weeks | Phase 1 | Where, orderBy, pagination | Unit, Integration, Filter, Aggregation, Performance |
-| 4. Caching | Medium | 2-3 weeks | 1-2 weeks | Phase 1 | Query caching, performance monitoring | Unit, Integration, Performance, Concurrent |
-| 5. Batch Processing | Medium | 3-4 weeks | 2 weeks | Phase 1 | Multiple query optimization | Unit, Integration, Dependency, Performance, Concurrent |
-| 6. Query Analysis | Medium | 2-3 weeks | 1-2 weeks | Phase 1 | Recommendations, insights | Unit, Integration, Analysis, Performance, Report |
-| 7. Plugin System | Low | 3-4 weeks | 2 weeks | None | Extensibility, custom plugins | Unit, Integration, Plugin, Lifecycle, Security |
-| 8. Fragment Handling | Low | 2-3 weeks | 1-2 weeks | Phase 1 | Advanced fragment support | Unit, Integration, Fragment, Optimization, Memory |
-| 9. Type Safety | Medium | 2-3 weeks | 1-2 weeks | Phase 1 | TypeScript integration | Type, Unit, Integration, Schema, IntelliSense |
-| 10. DB Optimizations | Low | 4-5 weeks | 2-3 weeks | Phase 1 | Database-specific optimizations | Unit, Integration, Database, Index, Cross-DB |
-| 11. Monitoring | Low | 3-4 weeks | 2 weeks | Phase 4 | Real-time metrics, alerting | Unit, Integration, Monitoring, Alert, Concurrent |
-| 12. Migration | Low | 2-3 weeks | 1-2 weeks | Phase 1 | Schema migration helpers | Unit, Integration, Migration, Version, CLI |
-| 13. Federation | Low | 4-5 weeks | 2-3 weeks | Phase 1 | Apollo Federation support | Unit, Integration, Entity, Subgraph, Cross-Subgraph |
-| 14. Custom Resolvers | Low | 3-4 weeks | 2 weeks | Phase 1 | Computed fields, resolvers | Unit, Integration, Resolver, Dependency, Concurrent |
-| 15. Templates | Low | 2-3 weeks | 1-2 weeks | Phase 1 | Query templates, marketplace | Unit, Integration, Template, Export/Import, Security |
+| 1. Field Transforms | High | 1-2 weeks | 1 week | None | Field mapping, transformations | Unit, Integration, Transformation, Performance |
+| 2. Query Building | High | 2-3 weeks | 1-2 weeks | Phase 1 | Where, orderBy, pagination | Unit, Integration, Filter, Aggregation, Performance |
+| 3. Caching | Medium | 2-3 weeks | 1-2 weeks | Phase 1 | Query caching, performance monitoring | Unit, Integration, Performance, Concurrent |
+| 4. Batch Processing | Medium | 3-4 weeks | 2 weeks | Phase 1 | Multiple query optimization | Unit, Integration, Dependency, Performance, Concurrent |
+| 5. Query Analysis | Medium | 2-3 weeks | 1-2 weeks | Phase 1 | Recommendations, insights | Unit, Integration, Analysis, Performance, Report |
+| 6. Plugin System | Low | 3-4 weeks | 2 weeks | None | Extensibility, custom plugins | Unit, Integration, Plugin, Lifecycle, Security |
+| 7. Fragment Handling | Low | 2-3 weeks | 1-2 weeks | Phase 1 | Advanced fragment support | Unit, Integration, Fragment, Optimization, Memory |
+| 8. Type Safety | Medium | 2-3 weeks | 1-2 weeks | Phase 1 | TypeScript integration | Type, Unit, Integration, Schema, IntelliSense |
+| 9. DB Optimizations | Low | 4-5 weeks | 2-3 weeks | Phase 1 | Database-specific optimizations | Unit, Integration, Database, Index, Cross-DB |
+| 10. Monitoring | Low | 3-4 weeks | 2 weeks | Phase 3 | Real-time metrics, alerting | Unit, Integration, Monitoring, Alert, Concurrent |
+| 11. Migration | Low | 2-3 weeks | 1-2 weeks | Phase 1 | Schema migration helpers | Unit, Integration, Migration, Version, CLI |
+| 12. Federation | Low | 4-5 weeks | 2-3 weeks | Phase 1 | Apollo Federation support | Unit, Integration, Entity, Subgraph, Cross-Subgraph |
+| 13. Custom Resolvers | Low | 3-4 weeks | 2 weeks | Phase 1 | Computed fields, resolvers | Unit, Integration, Resolver, Dependency, Concurrent |
+| 14. Templates | Low | 2-3 weeks | 1-2 weeks | Phase 1 | Query templates, marketplace | Unit, Integration, Template, Export/Import, Security |
 
-Each phase is designed to be implemented independently while building upon the core functionality. Start with Phase 1 (Schema Validation) as it provides the foundation for most other features.
+Each phase is designed to be implemented independently while building upon the core functionality. Start with Phase 1 (Field Transforms) as it provides the foundation for most other features.
 
 ### Testing Strategy Overview
 

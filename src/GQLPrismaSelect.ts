@@ -1,5 +1,6 @@
 import { Kind } from 'graphql/language/kinds';
 import type { GraphQLResolveInfo } from 'types';
+import { TransformationEngine, ResultTransformer } from './transforms';
 
 interface SelectInclude {
   select?: Include;
@@ -7,6 +8,29 @@ interface SelectInclude {
 }
 
 type Include = Record<string, boolean | SelectInclude>;
+
+// Phase 2: Query Transformation & Field Mapping
+export type FieldTransform = string | ((value: any, context: TransformContext) => any);
+
+export interface TransformContext {
+  fieldName: string;
+  modelName: string;
+  selectionPath: string[];
+  originalValue: any;
+}
+
+export interface FieldTransforms {
+  [graphqlField: string]: FieldTransform;
+}
+
+export interface TransformOptions {
+  fieldTransforms?: FieldTransforms;
+  defaultTransforms?: ('camelToSnake' | 'snakeToCamel' | 'pluralize' | 'singularize')[];
+  transformRelations?: boolean;
+  transformEnums?: boolean;
+  caseSensitive?: boolean;
+  customTransformers?: Record<string, Function>;
+}
 
 export class GQLPrismaSelect<S = any, I = any> {
   private info: GraphQLResolveInfo;
@@ -17,13 +41,26 @@ export class GQLPrismaSelect<S = any, I = any> {
   public select?: S;
   private excludeFields: string[] = [];
   private readonly fragments: Record<string, Include>;
+  private transformationEngine?: TransformationEngine;
+  private resultTransformer?: ResultTransformer;
 
   constructor(
     info: GraphQLResolveInfo,
-    params: { excludeFields?: string[]; get?: string | string[] } = {}
+    params: {
+      excludeFields?: string[];
+      get?: string | string[];
+      transforms?: TransformOptions;
+    } = {}
   ) {
     this.excludeFields = params.excludeFields || ['__typename'];
     this.info = info;
+
+    // Initialize transformation engine if transforms are provided
+    if (params.transforms) {
+      this.transformationEngine = new TransformationEngine(params.transforms);
+      this.resultTransformer = new ResultTransformer(this.transformationEngine);
+    }
+
     // Parse and save fragments
     this.fragments = this.getFragments();
     const res = this.transformPrismaIncludeFromQuery(info);
@@ -36,8 +73,17 @@ export class GQLPrismaSelect<S = any, I = any> {
       res.select || res.include
     );
     const { include, select } = this.selectOrInclude(customSelection);
-    this.include = include as I;
-    this.select = select as S;
+
+    // Apply transformations if engine is available
+    if (this.transformationEngine) {
+      const transformedSelection = this.transformationEngine.transformSelections(customSelection);
+      const transformed = this.selectOrInclude(transformedSelection);
+      this.include = transformed.include as I;
+      this.select = transformed.select as S;
+    } else {
+      this.include = include as I;
+      this.select = select as S;
+    }
   }
 
   private getFragments() {
@@ -178,6 +224,42 @@ export class GQLPrismaSelect<S = any, I = any> {
       return undefined;
     }
     return GQLPrismaSelect.get(rest, obj.select || obj.include);
+  }
+
+  /**
+   * Transforms result data back to GraphQL format
+   * @param result The result data from Prisma query
+   * @returns Transformed result data
+   */
+  transformResult(result: any): any {
+    if (!this.resultTransformer) {
+      return result;
+    }
+
+    const selections = this.originalSelect || this.originalInclude;
+    if (!selections) {
+      return result;
+    }
+
+    return this.resultTransformer.transform(result, selections as Record<string, any>);
+  }
+
+  /**
+   * Gets the transformation engine instance
+   */
+  getTransformationEngine(): TransformationEngine | undefined {
+    return this.transformationEngine;
+  }
+
+  /**
+   * Creates a GQLPrismaSelect instance with transforms
+   */
+  static withTransforms(
+    info: GraphQLResolveInfo,
+    transforms: TransformOptions,
+    params: { excludeFields?: string[]; get?: string | string[] } = {}
+  ): GQLPrismaSelect {
+    return new GQLPrismaSelect(info, { ...params, transforms });
   }
 }
 
