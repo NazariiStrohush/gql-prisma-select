@@ -153,6 +153,8 @@ export class GQLPrismaSelect<S = any, I = any> {
     return res;
   }
 
+  private static pathCache = new Map<string, string[]>();
+
   public static get(_path?: string | string[], _obj?: any): any {
     if (!_path?.length) {
       return _obj;
@@ -161,9 +163,13 @@ export class GQLPrismaSelect<S = any, I = any> {
     if (!_obj || typeof _obj !== 'object') {
       return undefined;
     }
-    let path = _path;
+    let path: string[];
     if (typeof _path === 'string') {
-      path = _path.split('.');
+      // Cache parsed paths to avoid repeated string splitting
+      path = GQLPrismaSelect.pathCache.get(_path) ||
+             GQLPrismaSelect.pathCache.set(_path, _path.split('.')).get(_path)!;
+    } else {
+      path = _path;
     }
     const [key, ...rest] = path;
     const obj = _obj[key];
@@ -174,3 +180,4 @@ export class GQLPrismaSelect<S = any, I = any> {
     return GQLPrismaSelect.get(rest, obj.select || obj.include);
   }
 }
+
