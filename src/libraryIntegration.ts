@@ -10,7 +10,7 @@ import { TypedOptions, TypedQueryBuilderOptions, LibraryIntegration, NexusQueryF
  */
 export class NexusIntegration {
   /**
-   * Create a typed query field for Nexus
+   * Create a typed query field for Nexus,
    */
   static createQueryField<TModel extends string>(
     config: NexusQueryFieldConfig<TModel>
