@@ -13,7 +13,7 @@ GQLPrismaSelect automatically converts your GraphQL query selections into optimi
 - 🚀 **Performance**: Fetch only the data your GraphQL queries request
 - 🎯 **Precision**: Eliminate over-fetching and under-fetching automatically
 - 🔧 **Simple**: Drop-in replacement for manual select/include objects
-- 🛠️ **Flexible**: Support for nested relations, fragments, and custom transformations
+- 🛠️ **Flexible**: Support for nested relations, advanced fragment handling, and custom transformations
 - 🎨 **Modern**: Built for Apollo Server and Prisma ecosystems
 
 ## 📋 Table of Contents
@@ -283,6 +283,76 @@ query {
 ```
 
 The library automatically resolves fragment selections into the appropriate Prisma select/include objects.
+
+#### Advanced Fragment Features
+
+GQLPrismaSelect now supports advanced fragment handling capabilities:
+
+**Fragment Registry & Caching**
+```typescript
+import { FragmentRegistry, FragmentCache } from '@nazariistrohush/gql-prisma-select';
+
+// Register fragments for reuse
+FragmentRegistry.register({
+  name: 'UserBasic',
+  type: 'User',
+  selections: { id: true, email: true, name: true },
+  metadata: { size: 30, complexity: 3, dependencies: [], usageCount: 0, lastUsed: new Date() }
+});
+
+// Use cached fragments
+const cache = new FragmentCache({ enabled: true, ttl: 300000 });
+```
+
+**Fragment Overrides**
+```typescript
+import { FragmentOverrider } from '@nazariistrohush/gql-prisma-select';
+
+const override = {
+  fragmentName: 'UserBasic',
+  excludeFields: ['internalId'],
+  includeFields: ['avatar'],
+  transformFields: { 'fullName': 'display_name' },
+  removeSelections: ['profile.private']
+};
+
+const customizedFragment = FragmentOverrider.apply(baseFragment, override);
+```
+
+**Dynamic Fragments**
+```typescript
+import { DynamicFragmentHandler } from '@nazariistrohush/gql-prisma-select';
+
+const dynamicFragments = [
+  {
+    name: 'AdminOnly',
+    condition: (ctx) => ctx.user?.role === 'admin',
+    selections: { adminData: true, permissions: true },
+    priority: 1
+  },
+  {
+    name: 'PremiumUser',
+    condition: (ctx) => ctx.user?.subscription === 'premium',
+    selections: { premiumFeatures: true, analytics: true },
+    priority: 2
+  }
+];
+
+const context = { user: { role: 'admin', subscription: 'premium' } };
+const activeFragments = DynamicFragmentHandler.evaluate(dynamicFragments, context);
+```
+
+**Fragment Optimization**
+```typescript
+import { FragmentOptimizer, FragmentAnalyzer } from '@nazariistrohush/gql-prisma-select';
+
+// Optimize fragments for performance
+const optimized = FragmentOptimizer.inline(fragment, 5); // Inline if used < 5 times
+
+// Analyze fragment usage
+const analysis = FragmentAnalyzer.analyze(allFragments);
+console.log('Optimization suggestions:', analysis.opportunities);
+```
 
 ### Result Transformation
 

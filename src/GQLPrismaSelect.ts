@@ -1,6 +1,18 @@
 import { Kind } from 'graphql/language/kinds';
 import type { GraphQLResolveInfo } from 'types';
 import { TransformationEngine, ResultTransformer } from './transforms';
+import {
+  FragmentOptions,
+  FragmentRegistry,
+  FragmentOptimizer,
+  FragmentOverrider,
+  DynamicFragmentHandler,
+  FragmentCache,
+  FragmentAnalyzer,
+  FragmentDefinition,
+  FragmentStats,
+  FragmentAnalysis
+} from './fragments';
 
 interface SelectInclude {
   select?: Include;
@@ -43,6 +55,8 @@ export class GQLPrismaSelect<S = any, I = any> {
   private readonly fragments: Record<string, Include>;
   private transformationEngine?: TransformationEngine;
   private resultTransformer?: ResultTransformer;
+  private fragmentOptions?: FragmentOptions;
+  private fragmentCache?: FragmentCache;
 
   constructor(
     info: GraphQLResolveInfo,
@@ -50,10 +64,12 @@ export class GQLPrismaSelect<S = any, I = any> {
       excludeFields?: string[];
       get?: string | string[];
       transforms?: TransformOptions;
+      fragments?: FragmentOptions;
     } = {}
   ) {
     this.excludeFields = params.excludeFields || ['__typename'];
     this.info = info;
+    this.fragmentOptions = params.fragments;
 
     // Initialize transformation engine if transforms are provided
     if (params.transforms) {
@@ -61,8 +77,13 @@ export class GQLPrismaSelect<S = any, I = any> {
       this.resultTransformer = new ResultTransformer(this.transformationEngine);
     }
 
-    // Parse and save fragments
-    this.fragments = this.getFragments();
+    // Initialize fragment cache if enabled
+    if (params.fragments?.caching?.enabled) {
+      this.fragmentCache = new FragmentCache(params.fragments.caching);
+    }
+
+    // Parse and save fragments with enhanced processing
+    this.fragments = this.processFragments();
     const res = this.transformPrismaIncludeFromQuery(info);
     // Save original values
     this.originalInclude = res.include as I;
@@ -86,7 +107,102 @@ export class GQLPrismaSelect<S = any, I = any> {
     }
   }
 
-  private getFragments() {
+  private processFragments(): Record<string, Include> {
+    // Handle undefined or null fragments
+    if (!this.info.fragments) {
+      return {};
+    }
+
+    const processedFragments: Record<string, Include> = {};
+
+    // Process each fragment with advanced features
+    for (const [fragmentName, fragmentData] of Object.entries(this.info.fragments)) {
+      if (fragmentData?.selectionSet?.selections) {
+        const baseSelections = this.transformFragmentSelections(fragmentData.selectionSet.selections);
+
+        // Apply fragment options if configured
+        let processedSelections = baseSelections;
+
+        if (this.fragmentOptions) {
+          // Apply overrides for this specific fragment
+          const override = this.fragmentOptions.overrides?.find(o => o.fragmentName === fragmentName);
+          if (override) {
+            const fragmentDef: FragmentDefinition = {
+              name: fragmentName,
+              type: fragmentData.typeCondition?.name?.value || 'Unknown',
+              selections: baseSelections,
+              metadata: {
+                size: this.calculateFragmentSize(baseSelections),
+                complexity: this.calculateFragmentComplexity(baseSelections),
+                dependencies: this.extractFragmentDependencies(fragmentData.selectionSet.selections),
+                usageCount: 0,
+                lastUsed: new Date()
+              }
+            };
+
+            processedSelections = FragmentOverrider.apply(fragmentDef, override).selections;
+          }
+
+          // Apply dynamic fragments
+          if (this.fragmentOptions.dynamic) {
+            const dynamicFragments = DynamicFragmentHandler.evaluate(this.fragmentOptions.dynamic, {});
+            for (const dynamic of dynamicFragments) {
+              if (dynamic.name === fragmentName) {
+                processedSelections = FragmentOptimizer.mergeSelections([processedSelections, dynamic.selections]);
+              }
+            }
+          }
+
+          // Apply inlining if configured
+          if (this.fragmentOptions.inlining?.enabled) {
+            const fragmentSize = this.calculateFragmentSize(processedSelections);
+            if (fragmentSize < (this.fragmentOptions.inlining.threshold || 1000)) {
+              // Fragment is small enough to inline - we'll handle this during selection processing
+              processedSelections = FragmentOptimizer.inline(
+                {
+                  name: fragmentName,
+                  type: fragmentData.typeCondition?.name?.value || 'Unknown',
+                  selections: processedSelections,
+                  metadata: {
+                    size: fragmentSize,
+                    complexity: this.calculateFragmentComplexity(processedSelections),
+                    dependencies: [],
+                    usageCount: 0,
+                    lastUsed: new Date()
+                  }
+                },
+                1 // Always inline since size check already passed
+              ) as Include;
+            }
+          }
+        }
+
+        processedFragments[fragmentName] = processedSelections;
+
+        // Register fragment in registry if analysis is enabled
+        if (this.fragmentOptions?.analysis?.trackUsage) {
+          const fragmentDef: FragmentDefinition = {
+            name: fragmentName,
+            type: fragmentData.typeCondition?.name?.value || 'Unknown',
+            selections: processedSelections,
+            metadata: {
+              size: this.calculateFragmentSize(processedSelections),
+              complexity: this.calculateFragmentComplexity(processedSelections),
+              dependencies: this.extractFragmentDependencies(fragmentData.selectionSet.selections),
+              usageCount: 0,
+              lastUsed: new Date()
+            }
+          };
+
+          FragmentRegistry.register(fragmentDef);
+        }
+      }
+    }
+
+    return processedFragments;
+  }
+
+  private getFragments(): Record<string, Include> {
     // Handle undefined or null fragments
     if (!this.info.fragments) {
       return {};
@@ -169,18 +285,46 @@ export class GQLPrismaSelect<S = any, I = any> {
             this.transformSelections(selections)
           );
         } else if (selection.kind === Kind.FRAGMENT_SPREAD) {
-          // Check if fragment exists and has valid selectionSet
+          // Check if fragment exists in processed fragments
           const fragment = this.fragments[value];
           if (fragment) {
-            // Fragment is already transformed, merge it directly
+            // Fragment is already processed with advanced features, merge it directly
             acc = { ...acc, ...fragment };
-          } else if (this.info.fragments?.[value]?.selectionSet?.selections) {
-            // Fallback: transform fragment on-the-fly if not in cache
-            const fragmentSpreadFields = this.transformSelections(
-              this.info.fragments[value].selectionSet.selections
-            );
-            if (fragmentSpreadFields) {
-              acc = { ...acc, ...fragmentSpreadFields };
+
+            // Check if fragment should be cached
+            if (this.fragmentCache) {
+              const cacheKey = FragmentCache.generateKey({
+                name: value,
+                type: 'Unknown', // Type not needed for caching key
+                selections: fragment,
+                metadata: {
+                  size: this.calculateFragmentSize(fragment),
+                  complexity: this.calculateFragmentComplexity(fragment),
+                  dependencies: [],
+                  usageCount: 0,
+                  lastUsed: new Date()
+                }
+              });
+
+              // Try to get from cache first
+              const cachedFragment = this.fragmentCache.get(cacheKey);
+              if (cachedFragment) {
+                acc = { ...acc, ...cachedFragment.selections };
+              } else {
+                // Cache the fragment for future use
+                this.fragmentCache.set(cacheKey, {
+                  name: value,
+                  type: 'Unknown',
+                  selections: fragment,
+                  metadata: {
+                    size: this.calculateFragmentSize(fragment),
+                    complexity: this.calculateFragmentComplexity(fragment),
+                    dependencies: [],
+                    usageCount: 0,
+                    lastUsed: new Date()
+                  }
+                });
+              }
             }
           }
           // If fragment doesn't exist, skip it (don't throw error)
@@ -260,6 +404,96 @@ export class GQLPrismaSelect<S = any, I = any> {
     params: { excludeFields?: string[]; get?: string | string[] } = {}
   ): GQLPrismaSelect {
     return new GQLPrismaSelect(info, { ...params, transforms });
+  }
+
+  /**
+   * Creates a GQLPrismaSelect instance with fragment handling
+   */
+  static withFragments(
+    info: GraphQLResolveInfo,
+    fragments: FragmentOptions,
+    params: { excludeFields?: string[]; get?: string | string[]; transforms?: TransformOptions } = {}
+  ): GQLPrismaSelect {
+    return new GQLPrismaSelect(info, { ...params, fragments });
+  }
+
+  /**
+   * Get fragment statistics
+   */
+  static getFragmentStats(): FragmentStats {
+    return FragmentRegistry.getUsageStats();
+  }
+
+  /**
+   * Analyze fragments for optimization opportunities
+   */
+  static analyzeFragments(): FragmentAnalysis {
+    const fragments = FragmentRegistry.list();
+    return FragmentAnalyzer.analyze(fragments);
+  }
+
+  // Helper methods for fragment processing
+  private transformFragmentSelections(selections: readonly any[]): Include {
+    return selections?.reduce((acc, selection) => {
+      const { name, selectionSet } = selection;
+      const { value } = name;
+      const { selections: nestedSelections } = selectionSet || {};
+
+      if (selection.kind === Kind.FIELD) {
+        if (this.excludeFields.includes(value)) {
+          return acc;
+        }
+        acc[value] = this.selectOrIncludeOrBoolean(
+          this.transformFragmentSelections(nestedSelections)
+        );
+      } else if (selection.kind === Kind.FRAGMENT_SPREAD) {
+        // Use processed fragments instead of direct access
+        const fragment = this.fragments[value];
+        if (fragment) {
+          acc = { ...acc, ...fragment };
+        }
+      }
+      return acc;
+    }, {}) || {};
+  }
+
+  private calculateFragmentSize(selections: Include): number {
+    const jsonString = JSON.stringify(selections);
+    return Buffer.byteLength(jsonString, 'utf8');
+  }
+
+  private calculateFragmentComplexity(selections: Include): number {
+    let complexity = 0;
+
+    for (const [key, value] of Object.entries(selections)) {
+      complexity += 1; // Base complexity for each field
+
+      if (typeof value === 'object' && value !== null) {
+        const nested = value.select || value.include;
+        if (nested) {
+          complexity += this.calculateFragmentComplexity(nested) * 2; // Nested selections are more complex
+        }
+      }
+    }
+
+    return complexity;
+  }
+
+  private extractFragmentDependencies(selections: readonly any[]): string[] {
+    const dependencies = new Set<string>();
+
+    const traverseSelections = (sels: readonly any[]) => {
+      for (const selection of sels) {
+        if (selection.kind === Kind.FRAGMENT_SPREAD) {
+          dependencies.add(selection.name.value);
+        } else if (selection.selectionSet?.selections) {
+          traverseSelections(selection.selectionSet.selections);
+        }
+      }
+    };
+
+    traverseSelections(selections);
+    return Array.from(dependencies);
   }
 }
 
