@@ -26,6 +26,7 @@ GQLPrismaSelect automatically converts your GraphQL query selections into optimi
 - [📦 Installation](#-installation)
 - [🔧 Basic Usage](#-basic-usage)
 - [🚀 Advanced Features](#-advanced-features)
+  - [Type-Safe Integration](#type-safe-integration)
   - [Field Transformations](#field-transformations)
   - [Fragments](#fragments)
   - [Framework Integration](#framework-integration)
@@ -98,7 +99,7 @@ GQLPrismaSelect provides a comprehensive set of features to optimize your GraphQ
 
 ### Developer Experience
 
-- **[TypeScript Support](#typescript-support)**: Full TypeScript definitions and type safety
+- **[Type-Safe Integration](#type-safe-integration)**: Advanced TypeScript utilities with compile-time type checking and IntelliSense
 - **[Framework Agnostic](#framework-agnostic)**: Works with any GraphQL framework (NestJS, Apollo Server, etc.)
 - **[Performance Optimized](#performance)**: Minimal overhead with efficient parsing
 - **[Comprehensive Testing](#testing)**: High test coverage ensures reliability
@@ -382,6 +383,175 @@ const { include, select } = new GQLPrismaSelect(info, {
   schema: prismaSchema, // Validate against Prisma schema
   validateFields: true,
   optimizeQueries: true
+});
+
+```
+
+### Type-Safe Integration
+
+GQLPrismaSelect provides advanced TypeScript utilities for compile-time type safety and enhanced developer experience.
+
+#### TypedGQLPrismaSelect
+
+Get full type safety with IntelliSense support for GraphQL and Prisma integration:
+
+```typescript
+import { TypedGQLPrismaSelect } from '@nazariistrohush/gql-prisma-select';
+
+interface GraphQLUser {
+  id: string;
+  name: string;
+  email: string;
+  posts: {
+    id: string;
+    title: string;
+    content: string;
+  };
+}
+
+export const userResolver = async (
+  parent: any,
+  args: { id: string },
+  context: any,
+  info: GraphQLResolveInfo
+) => {
+  const selector = new TypedGQLPrismaSelect<GraphQLUser, 'User'>(info);
+
+  // Fully typed with IntelliSense
+  const select = selector.getTypedSelect();
+  const include = selector.getTypedInclude();
+
+  return context.prisma.user.findUnique({
+    where: { id: args.id },
+    select,
+    include
+  });
+};
+```
+
+#### Runtime Type Validation
+
+Validate selections against your GraphQL schema at runtime:
+
+```typescript
+import { TypedGQLPrismaSelect } from '@nazariistrohush/gql-prisma-select';
+
+const selector = new TypedGQLPrismaSelect<User, 'User'>(info, {
+  typeValidation: {
+    strict: true,
+    validateEnums: true,
+    validateRelations: true
+  }
+});
+
+// Validate selections against schema
+const validationResult = selector.validateTypes(schema);
+if (!validationResult.isValid) {
+  console.error('Type validation errors:', validationResult.errors);
+}
+```
+
+#### Typed Query Builder
+
+Build type-safe Prisma queries with a fluent API:
+
+```typescript
+import { TypedQueryBuilder } from '@nazariistrohush/gql-prisma-select';
+
+const builder = new TypedQueryBuilder({ model: 'User' });
+
+const query = builder
+  .select({ id: true, name: true, email: true })
+  .include({
+    posts: {
+      select: { id: true, title: true },
+      include: { comments: true }
+    }
+  })
+  .where({ active: true })
+  .orderBy({ createdAt: 'desc' })
+  .build();
+
+// query is fully typed and ready for Prisma
+const users = await prisma.user.findMany(query);
+```
+
+#### Schema Type Generation
+
+Generate TypeScript types from your GraphQL schema:
+
+```typescript
+import { TypeGenerator } from '@nazariistrohush/gql-prisma-select';
+import { buildSchema } from 'graphql';
+
+const schema = buildSchema(`
+  type User {
+    id: ID!
+    name: String!
+    email: String!
+    posts: [Post!]!
+  }
+
+  type Post {
+    id: ID!
+    title: String!
+    content: String!
+    author: User!
+  }
+`);
+
+const generator = new TypeGenerator(schema, {
+  output: './generated',
+  generateQueries: true,
+  generateMutations: true
+});
+
+// Generate all types
+await generator.generate();
+```
+
+#### Library Integrations
+
+Built-in integrations for popular GraphQL libraries:
+
+```typescript
+// Nexus Integration
+import { NexusIntegration } from '@nazariistrohush/gql-prisma-select';
+
+const UserQuery = NexusIntegration.createQueryField<'User'>({
+  type: 'User',
+  args: { id: idArg() },
+  model: 'User',
+  resolve: async (root, args, ctx, info) => {
+    const selector = new TypedGQLPrismaSelect<any, 'User'>(info);
+    const { select, include } = selector.getTypedSelect();
+
+    return ctx.prisma.user.findUnique({
+      where: { id: args.id },
+      select,
+      include
+    });
+  }
+});
+
+// Apollo Server Integration
+import { ApolloServerIntegration } from '@nazariistrohush/gql-prisma-select';
+
+const resolvers = ApolloServerIntegration.createResolvers({
+  Query: {
+    user: ApolloServerIntegration.createQueryResolver<'User'>(
+      'User',
+      async (args, context, info) => {
+        const selector = new TypedGQLPrismaSelect<any, 'User'>(info);
+        const select = selector.getTypedSelect();
+
+        return context.prisma.user.findUnique({
+          where: { id: args.id },
+          ...select
+        });
+      }
+    )
+  }
 });
 ```
 
@@ -684,6 +854,157 @@ The library throws descriptive errors for:
 - Circular fragment references
 - Invalid transformation configurations
 - Path extraction failures
+
+## 🔧 Type-Safe API Reference
+
+### TypedGQLPrismaSelect
+
+```typescript
+new TypedGQLPrismaSelect<TGraphQL, TPrisma>(
+  info: GraphQLResolveInfo,
+  options?: TypedOptions<TGraphQL, TPrisma>
+)
+```
+
+Advanced type-safe version of GQLPrismaSelect with full IntelliSense support.
+
+**Type Parameters:**
+- `TGraphQL`: GraphQL type interface (e.g., `{ id: string; name: string }`)
+- `TPrisma`: Prisma model name as string literal (e.g., `'User'`)
+
+**Options:**
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `excludeFields` | `string[]` | Fields to exclude from selection | `['__typename']` |
+| `transforms` | `TransformOptions` | Field transformation options | `undefined` |
+| `fragments` | `FragmentOptions` | Fragment handling options | `undefined` |
+| `typeValidation` | `TypeValidationOptions` | Runtime type validation options | `undefined` |
+
+**Methods:**
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `getTypedSelect()` | `SafeSelect<TGraphQL, TPrisma>` | Type-safe select object with full IntelliSense |
+| `getTypedInclude()` | `PrismaSelect<TPrisma>` | Type-safe include object for relations |
+| `validateTypes(schema?)` | `ValidationResult` | Runtime validation against GraphQL schema |
+| `transformResultTyped(result)` | `any` | Transform result with type validation |
+
+### TypedQueryBuilder
+
+```typescript
+new TypedQueryBuilder<TModel>(options: TypedQueryBuilderOptions<TModel>)
+```
+
+Fluent API for building type-safe Prisma queries.
+
+**Type Parameters:**
+- `TModel`: Prisma model name as string literal (e.g., `'User'`)
+
+**Options:**
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `model` | `TModel` | Prisma model name | Required |
+| `schema` | `GraphQLSchema` | GraphQL schema for validation | `undefined` |
+| `typeValidation` | `boolean` | Enable type validation | `true` |
+
+**Methods:**
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `select(fields)` | `this` | Add fields to select (type-safe) |
+| `include(relations)` | `this` | Add relations to include (type-safe) |
+| `where(conditions)` | `this` | Add where conditions |
+| `orderBy(order)` | `this` | Add ordering |
+| `build()` | `TypedPrismaQuery<TModel>` | Build complete query object |
+| `getModel()` | `TModel` | Get model name |
+
+### TypeGenerator
+
+```typescript
+new TypeGenerator(schema: GraphQLSchema, options?: Partial<TypeGenerationOptions>)
+```
+
+Generate TypeScript types from GraphQL schemas.
+
+**Options:**
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `output` | `string` | Output directory | `'./generated'` |
+| `generateQueries` | `boolean` | Generate query types | `true` |
+| `generateMutations` | `boolean` | Generate mutation types | `true` |
+| `generateSubscriptions` | `boolean` | Generate subscription types | `true` |
+| `customScalars` | `Record<string, string>` | Custom scalar mappings | `{}` |
+| `namespace` | `string` | Type namespace | `'Generated'` |
+
+**Methods:**
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `generateTypes()` | `TypeGenerationResult` | Generate all types |
+| `generateModelTypes()` | `string` | Generate model types |
+| `generateQueryTypes()` | `string` | Generate query types |
+
+**Static Methods:**
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `generate(options)` | `Promise<void>` | Generate types to files |
+| `generateForModel(modelName, schema)` | `string` | Generate types for specific model |
+
+### TypeValidator
+
+```typescript
+new TypeValidator(schema: GraphQLSchema, options?: TypeValidationOptions)
+```
+
+Runtime type validation against GraphQL schemas.
+
+**Options:**
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `strict` | `boolean` | Throw on type mismatches | `false` |
+| `warnOnMissing` | `boolean` | Warn on missing fields | `true` |
+| `validateEnums` | `boolean` | Validate enum values | `true` |
+| `validateRelations` | `boolean` | Validate relation types | `true` |
+
+**Methods:**
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `validate(value, type)` | `ValidationResult` | Validate value against type |
+| `validateSelection(selection, type)` | `ValidationResult` | Validate GraphQL selection |
+| `validateEnum(value, enumType)` | `boolean` | Validate enum value |
+| `validateRelations(selections, parentType)` | `ValidationResult` | Validate relations |
+
+### Library Integrations
+
+#### NexusIntegration
+
+| Method | Description |
+|--------|-------------|
+| `createQueryField<TModel>(config)` | Create typed Nexus query field |
+| `createMutationField<TModel>(config)` | Create typed Nexus mutation field |
+| `createResolvers<TModel>(model, resolvers)` | Create typed field resolvers |
+
+#### ApolloServerIntegration
+
+| Method | Description |
+|--------|-------------|
+| `createResolvers(resolvers)` | Create resolver map |
+| `createQueryResolver<TModel>(model, resolver)` | Create typed query resolver |
+| `createMutationResolver<TModel>(model, resolver)` | Create typed mutation resolver |
+
+#### LibraryRegistry
+
+| Method | Description |
+|--------|-------------|
+| `register(name, integration)` | Register library integration |
+| `get(name)` | Get registered integration |
+| `list()` | List all registered integrations |
 
 ## 🔄 Migration Guide
 
