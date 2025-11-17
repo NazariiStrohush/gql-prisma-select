@@ -26,6 +26,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'))
 
     steps:
+      # Build and Test Phase
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -120,6 +121,7 @@ jobs:
           echo "next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
           echo "Next version: $NEXT_VERSION"
 
+      # Release Decision Phase
       - name: Check if tag already exists
         id: check_tag
         run: |
@@ -140,6 +142,7 @@ jobs:
             fi
           fi
 
+      # Publishing Phase (only runs if should_release == true)
       - name: Update package.json version
         if: steps.check_tag.outputs.should_release == 'true'
         run: |
@@ -148,11 +151,34 @@ jobs:
 
       - name: Publish to npm
         if: steps.check_tag.outputs.should_release == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
           echo "Publishing version $NEXT_VERSION to npm..."
-          npm publish --access public
-          echo "Successfully published to npm"
+          npm whoami
+          if npm publish --access public; then
+            echo "Successfully published $NEXT_VERSION to npm"
+          else
+            echo "Failed to publish to npm"
+            exit 1
+          fi
+
+      - name: Verify npm publication
+        if: steps.check_tag.outputs.should_release == 'true'
+        run: |
+          NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
+          PACKAGE_NAME="@nazariistrohush/gql-prisma-select"
+
+          echo "Verifying package $PACKAGE_NAME@$NEXT_VERSION was published..."
+          sleep 10  # Wait for npm registry to update
+
+          if npm view "$PACKAGE_NAME@$NEXT_VERSION" version; then
+            echo "✅ Package $PACKAGE_NAME@$NEXT_VERSION successfully verified on npm"
+          else
+            echo "❌ Failed to verify package $PACKAGE_NAME@$NEXT_VERSION on npm"
+            exit 1
+          fi
 
       - name: Create and push tag
         if: steps.check_tag.outputs.should_release == 'true'
