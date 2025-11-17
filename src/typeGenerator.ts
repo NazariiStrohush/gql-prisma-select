@@ -88,32 +88,47 @@ export class TypeGenerator {
     const types: string[] = [];
     const warnings: string[] = [];
 
+    // Reset generated types tracking
+    this.generatedTypes.clear();
+
     // Generate namespace
     types.push(`export namespace ${this.options.namespace} {`);
 
     // Generate type definitions
     if (this.options.generateQueries) {
-      types.push(this.generateQueryTypes());
+      const queryTypes = this.generateQueryTypes();
+      types.push(queryTypes);
+      this.generatedTypes.set('Queries', queryTypes);
     }
 
     if (this.options.generateMutations) {
-      types.push(this.generateMutationTypes());
+      const mutationTypes = this.generateMutationTypes();
+      types.push(mutationTypes);
+      this.generatedTypes.set('Mutations', mutationTypes);
     }
 
     if (this.options.generateSubscriptions) {
-      types.push(this.generateSubscriptionTypes());
+      const subscriptionTypes = this.generateSubscriptionTypes();
+      types.push(subscriptionTypes);
+      this.generatedTypes.set('Subscriptions', subscriptionTypes);
     }
 
     // Generate model types
-    types.push(this.generateModelTypes());
+    const modelTypes = this.generateModelTypes();
+    types.push(modelTypes);
+    this.generatedTypes.set('Models', modelTypes);
 
     // Generate utility types
-    types.push(this.generateUtilityTypes());
+    const utilityTypes = this.generateUtilityTypes();
+    types.push(utilityTypes);
+    this.generatedTypes.set('Utilities', utilityTypes);
 
     types.push('}'); // Close namespace
 
     // Generate IntelliSense declarations
-    types.push(this.generateIntelliSenseDeclarations());
+    const intelliSenseTypes = this.generateIntelliSenseDeclarations();
+    types.push(intelliSenseTypes);
+    this.generatedTypes.set('IntelliSense', intelliSenseTypes);
 
     const result: TypeGenerationResult = {
       types: types.join('\n\n'),
@@ -213,8 +228,8 @@ export class TypeGenerator {
 
     for (const [fieldName, field] of Object.entries(fields)) {
       const tsType = this.graphQLTypeToTypeScript(field.type);
-      const nullable = !isNonNullType(field.type) ? '?' : '';
-      fieldDefinitions.push(`    ${fieldName}${nullable}: ${tsType};`);
+      // For Prisma selection types, all fields are optional
+      fieldDefinitions.push(`    ${fieldName}?: ${tsType};`);
     }
 
     return `  export interface ${modelName} {\n${fieldDefinitions.join('\n')}\n  }`;
@@ -319,7 +334,9 @@ declare module '@nazariistrohush/gql-prisma-select' {
     let count = 0;
     const typeMap = this.schema.getTypeMap();
     for (const [typeName, type] of Object.entries(typeMap)) {
-      if (isObjectType(type) && !typeName.startsWith('__')) {
+      // Count only model types, exclude Query, Mutation, Subscription
+      if (isObjectType(type) && !typeName.startsWith('__') &&
+          !['Query', 'Mutation', 'Subscription'].includes(typeName)) {
         count++;
       }
     }

@@ -104,13 +104,12 @@ describe('Library Integration', () => {
   });
 
   describe('LibraryRegistry', () => {
-    beforeEach(() => {
-      // Reset registry
-      (LibraryRegistry as any).integrations.clear();
-    });
 
     describe('register', () => {
       it('should register integration', () => {
+        // Clear registry for this test
+        (LibraryRegistry as any).integrations.clear();
+
         const integration = { name: 'test', helper: () => {} };
 
         LibraryRegistry.register('test', integration as any);
@@ -121,6 +120,9 @@ describe('Library Integration', () => {
 
     describe('get', () => {
       it('should retrieve registered integration', () => {
+        // Clear registry for this test
+        (LibraryRegistry as any).integrations.clear();
+
         const integration = { name: 'test', helper: () => {} };
         LibraryRegistry.register('test', integration as any);
 
@@ -130,6 +132,9 @@ describe('Library Integration', () => {
       });
 
       it('should return undefined for unregistered integration', () => {
+        // Clear registry for this test to ensure clean state
+        (LibraryRegistry as any).integrations.clear();
+
         const retrieved = LibraryRegistry.get('nonexistent');
 
         expect(retrieved).toBeUndefined();
@@ -138,6 +143,9 @@ describe('Library Integration', () => {
 
     describe('list', () => {
       it('should list all registered integrations', () => {
+        // Clear registry for this test
+        (LibraryRegistry as any).integrations.clear();
+
         LibraryRegistry.register('test1', {});
         LibraryRegistry.register('test2', {});
 
@@ -200,6 +208,16 @@ describe('Library Integration', () => {
   });
 
   describe('Built-in Integrations', () => {
+    // Ensure built-in integrations are registered before these tests
+    beforeAll(() => {
+      // Re-register built-in integrations in case they were cleared
+      LibraryRegistry.register('nexus', {
+        nexus: require('../libraryIntegration').NexusIntegration
+      } as any);
+      LibraryRegistry.register('apollo-server', {} as any);
+      LibraryRegistry.register('graphql-code-generator', {} as any);
+    });
+
     it('should have nexus integration registered', () => {
       const nexus = LibraryRegistry.get('nexus');
 

@@ -268,18 +268,20 @@ export class FragmentOptimizer {
     const mergedSelections = this.mergeSelections(fragments.map(f => f.selections));
 
     // Calculate merged metadata
-    const totalSize = fragments.reduce((sum, f) => sum + f.metadata.size, 0);
     const maxComplexity = Math.max(...fragments.map(f => f.metadata.complexity));
     const allDependencies = Array.from(
       new Set(fragments.flatMap(f => f.metadata.dependencies))
     );
+
+    // Calculate actual size of merged selections (not sum of individual sizes)
+    const mergedSize = JSON.stringify(mergedSelections).length;
 
     const mergedFragment: FragmentDefinition = {
       name: `Merged${fragments.map(f => f.name).join('_')}`,
       type: baseType,
       selections: mergedSelections,
       metadata: {
-        size: totalSize,
+        size: mergedSize,
         complexity: maxComplexity,
         dependencies: allDependencies,
         usageCount: Math.max(...fragments.map(f => f.metadata.usageCount)),
@@ -862,6 +864,15 @@ export class FragmentAnalyzer {
         effort: 'medium',
         fragments: analysis.duplicates.flatMap(g => g.fragments)
       });
+
+      // Suggest deduplication
+      optimizations.push({
+        type: 'deduplicate',
+        description: `Remove ${analysis.duplicates.length} duplicate fragment groups`,
+        impact: 'high',
+        effort: 'medium',
+        fragments: analysis.duplicates.flatMap(g => g.fragments)
+      });
     }
 
     // Suggest caching frequently used fragments
@@ -894,6 +905,37 @@ export class FragmentAnalyzer {
     const duplicates: DuplicateGroup[] = [];
     const processed = new Set<string>();
 
+    // First pass: find exact duplicates (similarity = 1)
+    for (let i = 0; i < fragments.length; i++) {
+      const fragmentA = fragments[i];
+      if (processed.has(fragmentA.name)) continue;
+
+      const exactDuplicates: FragmentDefinition[] = [];
+
+      for (let j = i + 1; j < fragments.length; j++) {
+        const fragmentB = fragments[j];
+        if (processed.has(fragmentB.name)) continue;
+
+        const similarity = this.calculateSimilarity(fragmentA, fragmentB);
+        if (similarity === 1) { // Exact match
+          exactDuplicates.push(fragmentB);
+        }
+      }
+
+      if (exactDuplicates.length > 0) {
+        const group: DuplicateGroup = {
+          fragments: [fragmentA.name, ...exactDuplicates.map(f => f.name)],
+          similarity: 1,
+          mergedSize: this.calculateMergedSize([fragmentA, ...exactDuplicates]),
+          savings: this.calculateSavings([fragmentA, ...exactDuplicates])
+        };
+        duplicates.push(group);
+        processed.add(fragmentA.name);
+        exactDuplicates.forEach(f => processed.add(f.name));
+      }
+    }
+
+    // Second pass: find similar fragments (similarity > 0.5 but < 1)
     for (let i = 0; i < fragments.length; i++) {
       const fragmentA = fragments[i];
       if (processed.has(fragmentA.name)) continue;
@@ -905,7 +947,7 @@ export class FragmentAnalyzer {
         if (processed.has(fragmentB.name)) continue;
 
         const similarity = this.calculateSimilarity(fragmentA, fragmentB);
-        if (similarity > 0.5) { // 50% similarity threshold
+        if (similarity >= 0.5 && similarity < 1) { // Partial similarity
           similarFragments.push(fragmentB);
         }
       }
@@ -998,8 +1040,8 @@ export class DynamicFragmentHandler {
   static evaluate(fragments: DynamicFragment[], context: any): FragmentDefinition[] {
     const result: FragmentDefinition[] = [];
 
-    // Sort by priority (lower number = higher priority)
-    const sortedFragments = [...fragments].sort((a, b) => a.priority - b.priority);
+      // Sort by priority (lower number = higher priority)
+      const sortedFragments = [...fragments].sort((a, b) => a.priority - b.priority);
 
     for (const dynamicFragment of sortedFragments) {
       if (this.evaluateCondition(dynamicFragment.condition, context)) {

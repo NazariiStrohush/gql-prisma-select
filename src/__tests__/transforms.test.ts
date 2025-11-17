@@ -633,11 +633,15 @@ describe('Phase 2: Query Transformation & Field Mapping', () => {
 
       expect(selector.include).toEqual({
         user: {
-          user_name: true,
-          first_name: true,
-          posts: {
-            title: true,
-            created_at: true
+          select: {
+            user_name: true,
+            first_name: true,
+            posts: {
+              select: {
+                title: true,
+                created_at: true
+              }
+            }
           }
         }
       });

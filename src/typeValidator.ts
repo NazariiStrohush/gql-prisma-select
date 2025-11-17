@@ -442,8 +442,8 @@ export class TypeValidationUtils {
    */
   static formatValidationErrors(errors: ValidationError[]): string[] {
     return errors.map(error => {
-      const path = error.path.length > 0 ? ` at ${error.path.join('.')}` : '';
-      return `${error.field}${path}: ${error.message}`;
+      const path = error.path.length > 0 ? `${error.path.join('.')}.` : '';
+      return `${path}${error.field}: ${error.message}`;
     });
   }
 

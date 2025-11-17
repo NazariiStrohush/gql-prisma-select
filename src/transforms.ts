@@ -24,8 +24,11 @@ export class FieldTransformers {
   static pluralize(value: string): string {
     if (value.endsWith('y') && !/[aeiou]y$/i.test(value)) {
       return value.slice(0, -1) + 'ies';
-    } else if (value.endsWith('s') || value.endsWith('sh') || value.endsWith('ch') || value.endsWith('x') || value.endsWith('z')) {
+    } else if (value.endsWith('s') || value.endsWith('sh') || value.endsWith('ch') || value.endsWith('x')) {
       return value + 'es';
+    } else if (value.endsWith('z')) {
+      // Words ending with 'z' preceded by a vowel get 'zes'
+      return /[aeiou]z$/i.test(value) ? value + 'zes' : value + 'es';
     } else {
       return value + 's';
     }
@@ -37,6 +40,9 @@ export class FieldTransformers {
   static singularize(value: string): string {
     if (value.endsWith('ies') && !/[aeiou]ies$/.test(value)) {
       return value.slice(0, -3) + 'y';
+    } else if (value.endsWith('zes')) {
+      // Handle 'quizzes' -> 'quiz'
+      return value.slice(0, -3);
     } else if (value.endsWith('es')) {
       const base = value.slice(0, -2);
       if (base.endsWith('s') || base.endsWith('sh') || base.endsWith('ch') || base.endsWith('x') || base.endsWith('z')) {

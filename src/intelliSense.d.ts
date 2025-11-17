@@ -124,15 +124,6 @@ declare module './GQLPrismaSelect' {
    */
   export namespace GQLPrismaSelect {
     /**
-     * Create type-safe selector with transforms
-     */
-    function withTransforms(
-      info: GraphQLResolveInfo,
-      transforms: TransformOptions,
-      params?: { excludeFields?: string[]; get?: string | string[] }
-    ): GQLPrismaSelect;
-
-    /**
      * Create type-safe selector with fragment handling
      */
     function withFragments(

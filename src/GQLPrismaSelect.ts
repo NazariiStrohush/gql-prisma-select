@@ -98,6 +98,7 @@ export class GQLPrismaSelect<S = any, I = any> {
     // Parse and save fragments with enhanced processing
     this.fragments = this.processFragments();
     const res = this.transformPrismaIncludeFromQuery(info);
+
     // Save original values
     this.originalInclude = res.include as I;
     this.originalSelect = res.select as S;
@@ -120,6 +121,20 @@ export class GQLPrismaSelect<S = any, I = any> {
     }
   }
 
+  /**
+   * Create type-safe selector with transforms
+   */
+  static withTransforms(
+    info: GraphQLResolveInfo,
+    transforms: TransformOptions,
+    params?: { excludeFields?: string[]; get?: string | string[] }
+  ): GQLPrismaSelect {
+    return new GQLPrismaSelect(info, {
+      ...params,
+      transforms
+    });
+  }
+
   private processFragments(): Record<string, Include> {
     // Handle undefined or null fragments
     if (!this.info.fragments) {
@@ -131,7 +146,7 @@ export class GQLPrismaSelect<S = any, I = any> {
     // Process each fragment with advanced features
     for (const [fragmentName, fragmentData] of Object.entries(this.info.fragments)) {
       if (fragmentData?.selectionSet?.selections) {
-        const baseSelections = this.transformFragmentSelections(fragmentData.selectionSet.selections);
+        const baseSelections = this.transformFragmentSelections(fragmentData.selectionSet.selections, processedFragments);
 
         // Apply fragment options if configured
         let processedSelections = baseSelections;
@@ -410,7 +425,7 @@ export class GQLPrismaSelect<S = any, I = any> {
 
 
   // Helper methods for fragment processing
-  private transformFragmentSelections(selections: readonly any[]): Include {
+  private transformFragmentSelections(selections: readonly any[], processedFragments?: Record<string, Include>): Include {
     return selections?.reduce((acc, selection) => {
       const { name, selectionSet } = selection;
       const { value } = name;
@@ -421,11 +436,11 @@ export class GQLPrismaSelect<S = any, I = any> {
           return acc;
         }
         acc[value] = this.selectOrIncludeOrBoolean(
-          this.transformFragmentSelections(nestedSelections)
+          this.transformFragmentSelections(nestedSelections, processedFragments)
         );
       } else if (selection.kind === Kind.FRAGMENT_SPREAD) {
-        // Use processed fragments instead of direct access
-        const fragment = this.fragments[value];
+        // Use processed fragments parameter if available, otherwise fall back to this.fragments
+        const fragment = processedFragments ? processedFragments[value] : this.fragments[value];
         if (fragment) {
           acc = { ...acc, ...fragment };
         }
