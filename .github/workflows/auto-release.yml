@@ -16,10 +16,12 @@ on:
           - major
 
 jobs:
-  create-tag-and-release:
+  auto-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
+      id-token: write
     # Only run on push to main/master (not PRs) or manual dispatch
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'))
 
@@ -38,6 +40,8 @@ jobs:
         with:
           node-version: '20.x'
           cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+          scope: '@nazariistrohush'
 
       - name: Install dependencies
         run: npm ci
@@ -91,12 +95,12 @@ jobs:
         run: |
           CURRENT="${{ steps.get_tag.outputs.latest_version }}"
           BUMP_TYPE="${{ steps.bump_type.outputs.bump_type }}"
-          
+
           IFS='.' read -ra VERSION_PARTS <<< "$CURRENT"
           MAJOR=${VERSION_PARTS[0]}
           MINOR=${VERSION_PARTS[1]}
           PATCH=${VERSION_PARTS[2]}
-          
+
           case "$BUMP_TYPE" in
             major)
               MAJOR=$((MAJOR + 1))
@@ -111,17 +115,17 @@ jobs:
               PATCH=$((PATCH + 1))
               ;;
           esac
-          
+
           NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
           echo "next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
           echo "Next version: $NEXT_VERSION"
 
-      - name: Check if version already exists
-        id: check_version
+      - name: Check if tag already exists
+        id: check_tag
         run: |
           NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
-          if git rev-parse "$NEXT_VERSION" >/dev/null 2>&1; then
-            echo "Version $NEXT_VERSION already exists, skipping release"
+          if git tag -l | grep -q "^${NEXT_VERSION}$"; then
+            echo "Tag $NEXT_VERSION already exists, skipping release"
             echo "should_release=false" >> $GITHUB_OUTPUT
           else
             # Check if commit message contains [skip release]
@@ -136,8 +140,22 @@ jobs:
             fi
           fi
 
+      - name: Update package.json version
+        if: steps.check_tag.outputs.should_release == 'true'
+        run: |
+          NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
+          npm version $NEXT_VERSION --no-git-tag-version --no-commit-hooks
+
+      - name: Publish to npm
+        if: steps.check_tag.outputs.should_release == 'true'
+        run: |
+          NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
+          echo "Publishing version $NEXT_VERSION to npm..."
+          npm publish --access public
+          echo "Successfully published to npm"
+
       - name: Create and push tag
-        if: steps.check_version.outputs.should_release == 'true'
+        if: steps.check_tag.outputs.should_release == 'true'
         run: |
           NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
           TAG="$NEXT_VERSION"
@@ -152,4 +170,21 @@ jobs:
           git push origin "$TAG"
 
           echo "Successfully created and pushed tag: $TAG"
+
+      - name: Create GitHub Release
+        if: steps.check_tag.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.next_version.outputs.next_version }}
+          name: Release ${{ steps.next_version.outputs.next_version }}
+          body: |
+            ## Changes in this Release
+
+            ### Installation
+
+            ```bash
+            npm install @nazariistrohush/gql-prisma-select@${{ steps.next_version.outputs.next_version }}
+            ```
+          draft: false
+          prerelease: false
 
