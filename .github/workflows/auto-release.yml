@@ -18,6 +18,8 @@ on:
 jobs:
   create-tag-and-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     # Only run on push to main/master (not PRs) or manual dispatch
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'))
 

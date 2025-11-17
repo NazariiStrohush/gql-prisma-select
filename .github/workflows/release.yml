@@ -8,6 +8,10 @@ on:
 jobs:
   build-test-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
 
     steps:
       - name: Checkout code
