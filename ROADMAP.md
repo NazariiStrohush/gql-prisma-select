@@ -109,10 +109,13 @@ class OptimizationWarning {
 ```
 
 #### 1.7 Testing Requirements
-- Unit tests for schema parsing
-- Integration tests with real Prisma schemas
-- Performance tests for validation overhead
-- Error handling tests for invalid schemas
+- **Unit Tests**: Schema parsing, field validation, relation validation, circular reference detection
+- **Integration Tests**: Real Prisma schema loading, GraphQL info parsing with schema validation
+- **Regression Tests**: Ensure existing GQLPrismaSelect functionality works unchanged with schema validation enabled/disabled
+- **Performance Tests**: Measure validation overhead impact on query parsing performance
+- **Error Handling Tests**: Invalid schemas, missing fields, type mismatches, malformed relations
+- **Configuration Tests**: Validation levels (warn/error/silent), strict mode, optimization toggles
+- **Backward Compatibility Tests**: Existing code continues to work without schema option
 
 ---
 
@@ -193,6 +196,16 @@ class ResultTransformer {
 - Lazy transformation of results
 - Batch transformation for arrays
 - Memory-efficient streaming for large datasets
+
+#### 2.8 Testing Requirements
+- **Unit Tests**: Built-in transformers (camelToSnake, pluralize), custom transformer functions, transformation context handling
+- **Integration Tests**: Full transformation pipeline with GraphQL info, result transformation back to GraphQL format
+- **Field Mapping Tests**: GraphQL to database field name transformations, nested relation transformations, enum transformations
+- **Regression Tests**: Existing selector functionality works with/without transforms, backward compatibility with existing APIs
+- **Performance Tests**: Transformation overhead measurement, caching effectiveness, large dataset streaming
+- **Error Handling Tests**: Invalid transform functions, circular transformations, missing field mappings
+- **Configuration Tests**: Transform options validation, default transforms, case sensitivity, custom transformer registration
+- **Result Transformation Tests**: Bidirectional transformation accuracy, nested object handling, array transformations
 
 ---
 
@@ -307,6 +320,17 @@ type SafeQuery<T extends Prisma.ModelName> = {
   include?: Prisma.TypeMap[T]['Include'];
 };
 ```
+
+#### 3.7 Testing Requirements
+- **Unit Tests**: QueryBuilder methods (where, orderBy, paginate), filter application logic, aggregation building
+- **Integration Tests**: Complete query building pipeline, Prisma client execution with built queries
+- **Filter Tests**: User filtering, tenant filtering, soft delete filtering, RLS application, permission-based filtering
+- **Pagination Tests**: Cursor-based pagination, offset-based pagination, limit validation, edge case handling
+- **Aggregation Tests**: Group by operations, having clauses, multiple aggregations, nested aggregations
+- **Regression Tests**: Existing selector functionality unchanged, backward compatibility with existing query methods
+- **Performance Tests**: Query building overhead, large filter set performance, complex where clause optimization
+- **Error Handling Tests**: Invalid filter combinations, malformed where clauses, type mismatches in conditions
+- **Configuration Tests**: Filter option validation, query option combinations, advanced option interactions
 
 ---
 
@@ -441,6 +465,16 @@ class MemoryManager {
   static decompressEntry(data: string): any;
 }
 ```
+
+#### 4.7 Testing Requirements
+- **Unit Tests**: Cache strategies (LRU, LFU, TTL), cache key generation, cache entry lifecycle, compression/decompression
+- **Integration Tests**: Full caching pipeline with GraphQL queries, cache hit/miss scenarios, cache invalidation
+- **Performance Tests**: Cache hit rate measurement, memory usage monitoring, cache strategy effectiveness, slow query detection
+- **Monitoring Tests**: Metrics collection accuracy, alert rule evaluation, exporter functionality, dashboard data generation
+- **Regression Tests**: Existing functionality works with/without caching enabled, performance monitoring doesn't affect query results
+- **Configuration Tests**: Cache configuration validation, monitoring config validation, strategy selection logic
+- **Error Handling Tests**: Cache corruption recovery, monitoring failure handling, invalid configuration recovery
+- **Concurrent Tests**: Multi-threaded cache access, concurrent metric collection, race condition prevention
 
 ---
 
@@ -577,6 +611,17 @@ const batch = new GQLPrismaSelect.BatchProcessor([
 - **Connection Pooling**: Optimize database connections
 - **Result Deduplication**: Avoid fetching duplicate data
 
+#### 5.8 Testing Requirements
+- **Unit Tests**: Dependency analysis, selection merging logic, execution planning, result splitting
+- **Integration Tests**: Full batch processing pipeline, parallel execution verification, result combination accuracy
+- **Dependency Tests**: Cycle detection, dependency graph construction, execution order optimization
+- **Selection Merging Tests**: Common selection identification, merge conflict resolution, result deduplication
+- **Performance Tests**: Batch vs individual query performance, parallel execution gains, memory usage with large batches
+- **Regression Tests**: Single query functionality unchanged, backward compatibility with existing APIs
+- **Error Handling Tests**: Batch failure recovery, partial result handling, dependency resolution failures
+- **Configuration Tests**: Batch size limits, timeout handling, parallel execution controls
+- **Concurrent Tests**: Multiple batch processors running simultaneously, shared resource access
+
 ---
 
 ## Phase 6: Query Analysis & Recommendations
@@ -689,6 +734,16 @@ class AnalysisReporter {
   static sendReport(report: AnalysisReport, webhook: string): Promise<void>;
 }
 ```
+
+#### 6.7 Testing Requirements
+- **Unit Tests**: Analysis rules (depth, breadth, N+1 detection), complexity calculation, recommendation generation
+- **Integration Tests**: Full analysis pipeline with GraphQL info, schema-aware analysis, performance insights accuracy
+- **Analysis Tests**: N+1 query detection accuracy, Cartesian product identification, index suggestion relevance
+- **Performance Tests**: Analysis overhead measurement, large query analysis performance, memory usage during analysis
+- **Regression Tests**: Existing functionality works with analysis enabled/disabled, analysis doesn't affect query results
+- **Configuration Tests**: Analysis option validation, rule configuration, threshold settings
+- **Error Handling Tests**: Malformed queries, invalid schemas, analysis timeout handling
+- **Report Generation Tests**: Multiple export formats, webhook delivery, historical trend analysis
 
 ---
 
@@ -830,6 +885,17 @@ class PluginStore {
 }
 ```
 
+#### 7.7 Testing Requirements
+- **Unit Tests**: Plugin lifecycle hooks, hook execution order, plugin registration/deregistration, built-in plugins
+- **Integration Tests**: Plugin loading and execution, multiple plugin interactions, plugin configuration validation
+- **Plugin Tests**: Authentication plugin access control, validation plugin input sanitization, caching plugin cache operations
+- **Lifecycle Tests**: Hook execution order, error handling in hooks, plugin initialization failure recovery
+- **Performance Tests**: Plugin execution overhead, multiple plugin performance impact, plugin loading time
+- **Regression Tests**: Core functionality works with/without plugins, backward compatibility with existing APIs
+- **Configuration Tests**: Plugin config validation, priority ordering, conditional plugin activation
+- **Error Handling Tests**: Plugin loading failures, hook execution errors, plugin dependency resolution
+- **Security Tests**: Plugin sandboxing, malicious plugin detection, plugin permission validation
+
 ---
 
 ## Phase 8: Advanced Fragment Handling
@@ -968,6 +1034,17 @@ class FragmentAnalyzer {
   static suggestOptimizations(analysis: FragmentAnalysis): Optimization[];
 }
 ```
+
+#### 8.8 Testing Requirements
+- **Unit Tests**: Fragment registration/deregistration, fragment inlining logic, override application, dynamic fragment evaluation
+- **Integration Tests**: Full fragment processing pipeline, nested fragment handling, fragment caching effectiveness
+- **Fragment Tests**: Override application accuracy, dynamic fragment conditional logic, compatible fragment merging
+- **Optimization Tests**: Fragment inlining decisions, deduplication accuracy, caching strategy effectiveness
+- **Performance Tests**: Fragment processing overhead, caching performance gains, large fragment set handling
+- **Regression Tests**: Existing fragment support unchanged, backward compatibility with standard GraphQL fragments
+- **Configuration Tests**: Fragment caching options, inlining thresholds, override condition validation
+- **Error Handling Tests**: Invalid fragment definitions, circular fragment references, override conflicts
+- **Memory Tests**: Fragment cache size management, memory usage with large fragment sets, cache eviction
 
 ---
 
@@ -1109,6 +1186,17 @@ export const UserQuery = queryField('user', {
   }
 });
 ```
+
+#### 9.8 Testing Requirements
+- **Type Tests**: TypeScript compilation tests for type-safe constructors, type inference accuracy, IntelliSense support validation
+- **Unit Tests**: Type generation logic, type validation functions, schema type inference, runtime type checking
+- **Integration Tests**: Full type-safe workflow with GraphQL schema, Prisma client integration, popular library integrations
+- **Schema Generation Tests**: Type generation from GraphQL schemas, Prisma schema integration, generated type accuracy
+- **Runtime Validation Tests**: Type validation accuracy, enum validation, relation type checking, error reporting
+- **IntelliSense Tests**: Declaration merging effectiveness, auto-completion accuracy, type hinting validation
+- **Regression Tests**: Existing non-typed functionality unchanged, backward compatibility with existing APIs
+- **Configuration Tests**: Type generation options, validation options, library integration settings
+- **Error Handling Tests**: Type generation failures, invalid schema handling, runtime type validation errors
 
 ---
 
@@ -1264,6 +1352,18 @@ class DatabaseMonitor {
   generateReport(): DatabaseReport;
 }
 ```
+
+#### 10.7 Testing Requirements
+- **Unit Tests**: Database adapter interfaces, query optimization logic, index suggestion algorithms, database capability detection
+- **Integration Tests**: Full optimization pipeline with different database adapters, real query optimization scenarios
+- **Database Adapter Tests**: PostgreSQL optimizations, MySQL join optimizations, SQLite query handling, MongoDB aggregation
+- **Index Management Tests**: Index usage analysis accuracy, DDL generation correctness, selectivity calculation
+- **Query Optimization Tests**: Join optimization effectiveness, aggregation query improvements, subquery optimization
+- **Performance Tests**: Optimization overhead measurement, query execution time improvements, memory usage during optimization
+- **Regression Tests**: Core functionality works with/without database optimizations, backward compatibility maintained
+- **Configuration Tests**: Adapter selection logic, optimization option validation, database capability configuration
+- **Error Handling Tests**: Unsupported database features, optimization failures, invalid adapter configurations
+- **Cross-Database Tests**: Consistent behavior across different database adapters, adapter switching scenarios
 
 ---
 
@@ -1442,6 +1542,18 @@ interface ProfileResult {
 }
 ```
 
+#### 11.7 Testing Requirements
+- **Unit Tests**: Metrics collection accuracy, alert rule evaluation, exporter functionality, profiler instrumentation
+- **Integration Tests**: Full monitoring pipeline, real-time metrics collection, alert triggering scenarios
+- **Monitoring Tests**: Query metrics recording accuracy, cache hit/miss tracking, slow query identification
+- **Alert System Tests**: Rule evaluation logic, alert triggering conditions, notification delivery
+- **Dashboard Tests**: Widget data generation, chart rendering data, real-time updates
+- **Performance Tests**: Monitoring overhead measurement, large-scale metrics handling, concurrent monitoring
+- **Regression Tests**: Core functionality works with monitoring enabled/disabled, monitoring doesn't affect query results
+- **Configuration Tests**: Monitoring config validation, alert rule configuration, exporter settings
+- **Error Handling Tests**: Monitoring failures, alert delivery failures, invalid configuration recovery
+- **Concurrent Tests**: Multi-threaded monitoring, concurrent alert evaluation, high-frequency metrics collection
+
 ---
 
 ## Phase 12: Migration & Compatibility Helpers
@@ -1581,6 +1693,19 @@ GQLPrismaSelect.migrate({
   output: './migrations'
 });
 ```
+
+#### 12.7 Testing Requirements
+- **Unit Tests**: Schema diffing logic, compatibility checking, migration plan generation, version management
+- **Integration Tests**: Full migration pipeline, schema version transitions, automated migration execution
+- **Migration Tests**: Breaking change detection accuracy, migration suggestion relevance, rollback plan validation
+- **Compatibility Tests**: Query compatibility assessment, fragment compatibility checking, schema compatibility scoring
+- **Version Management Tests**: Version creation/storage, diff calculation between versions, version comparison accuracy
+- **Automated Migration Tests**: Migration application success, rollback functionality, error recovery during migration
+- **Performance Tests**: Migration analysis overhead, large schema diff performance, version management scaling
+- **Regression Tests**: Existing functionality works with compatibility checking enabled/disabled, migration tools don't affect runtime
+- **Configuration Tests**: Migration config validation, compatibility checking options, version storage settings
+- **Error Handling Tests**: Migration failures, invalid schema differences, version storage corruption recovery
+- **CLI Tests**: Command-line interface functionality, migration file generation, error reporting in CLI
 
 ---
 
@@ -1727,6 +1852,18 @@ class FederationTester {
 }
 ```
 
+#### 13.7 Testing Requirements
+- **Unit Tests**: Federation parser logic, entity resolution algorithms, subgraph query routing, federation directive parsing
+- **Integration Tests**: Full federation workflow, entity resolution across subgraphs, gateway coordination
+- **Entity Resolution Tests**: Key field matching accuracy, reference resolution correctness, entity representation handling
+- **Subgraph Tests**: Query distribution logic, result combination accuracy, entity reference handling
+- **Federation Schema Tests**: Directive parsing accuracy, entity definition validation, schema composition verification
+- **Performance Tests**: Federation overhead measurement, entity resolution performance, subgraph communication efficiency
+- **Regression Tests**: Standard GraphQL functionality unchanged, backward compatibility with non-federated schemas
+- **Configuration Tests**: Federation config validation, subgraph configuration, gateway settings
+- **Error Handling Tests**: Federation setup failures, entity resolution errors, subgraph communication failures
+- **Cross-Subgraph Tests**: Entity references across subgraphs, circular dependency handling, partial failure recovery
+
 ---
 
 ## Phase 14: Custom Resolvers & Computed Fields
@@ -1862,6 +1999,18 @@ class ResolverTester {
   private validateResult(expected: any, actual: any): boolean;
 }
 ```
+
+#### 14.8 Testing Requirements
+- **Unit Tests**: Resolver execution logic, batch resolver optimization, dependency analysis, resolver chain building
+- **Integration Tests**: Full resolver pipeline with GraphQL queries, computed field execution, batch resolution scenarios
+- **Resolver Tests**: Custom resolver execution accuracy, dependency resolution correctness, caching functionality
+- **Batch Resolver Tests**: Batch creation logic, batch execution efficiency, result distribution accuracy
+- **Dependency Tests**: Circular dependency detection, execution order optimization, dependency graph construction
+- **Performance Tests**: Resolver execution overhead, batch processing gains, caching performance improvements
+- **Regression Tests**: Existing functionality works with resolvers enabled/disabled, backward compatibility maintained
+- **Configuration Tests**: Resolver configuration validation, batch size settings, caching configuration
+- **Error Handling Tests**: Resolver execution failures, batch failures, dependency resolution errors
+- **Concurrent Tests**: Multiple resolver execution, batch processing concurrency, cache access synchronization
 
 ---
 
@@ -2054,26 +2203,52 @@ GQLPrismaSelect.cli()
   });
 ```
 
+#### 15.9 Testing Requirements
+- **Unit Tests**: Template creation/validation, variable resolution, export/import logic, marketplace operations
+- **Integration Tests**: Full template lifecycle, CLI command execution, marketplace interactions
+- **Template Tests**: Template application accuracy, variable substitution correctness, metadata validation
+- **Export/Import Tests**: Multiple format support, compression/decompression, encryption/decryption
+- **Marketplace Tests**: Template publishing/downloading, rating/review functionality, search capabilities
+- **CLI Tests**: Command execution accuracy, error handling, help system functionality
+- **Performance Tests**: Template loading overhead, large template set handling, marketplace search performance
+- **Regression Tests**: Existing functionality works with templates enabled/disabled, backward compatibility maintained
+- **Configuration Tests**: Template storage settings, export options validation, marketplace configuration
+- **Error Handling Tests**: Invalid template formats, marketplace failures, CLI command errors
+- **Security Tests**: Template content validation, malicious template detection, secure export/import operations
+
 ---
 
 ## Implementation Roadmap Summary
 
-| Phase | Priority | Est. Effort | Dependencies | Key Features |
-|-------|----------|-------------|--------------|--------------|
-| 1. Schema Validation | High | 2-3 weeks | None | Schema awareness, field validation |
-| 2. Field Transforms | High | 1-2 weeks | Phase 1 | Field mapping, transformations |
-| 3. Query Building | High | 2-3 weeks | Phase 1 | Where, orderBy, pagination |
-| 4. Caching | Medium | 2-3 weeks | Phase 1 | Query caching, performance monitoring |
-| 5. Batch Processing | Medium | 3-4 weeks | Phase 1 | Multiple query optimization |
-| 6. Query Analysis | Medium | 2-3 weeks | Phase 1 | Recommendations, insights |
-| 7. Plugin System | Low | 3-4 weeks | None | Extensibility, custom plugins |
-| 8. Fragment Handling | Low | 2-3 weeks | Phase 1 | Advanced fragment support |
-| 9. Type Safety | Medium | 2-3 weeks | Phase 1 | TypeScript integration |
-| 10. DB Optimizations | Low | 4-5 weeks | Phase 1 | Database-specific optimizations |
-| 11. Monitoring | Low | 3-4 weeks | Phase 4 | Real-time metrics, alerting |
-| 12. Migration | Low | 2-3 weeks | Phase 1 | Schema migration helpers |
-| 13. Federation | Low | 4-5 weeks | Phase 1 | Apollo Federation support |
-| 14. Custom Resolvers | Low | 3-4 weeks | Phase 1 | Computed fields, resolvers |
-| 15. Templates | Low | 2-3 weeks | Phase 1 | Query templates, marketplace |
+| Phase | Priority | Est. Effort | Testing Effort | Dependencies | Key Features | Testing Focus |
+|-------|----------|-------------|----------------|--------------|--------------|---------------|
+| 1. Schema Validation | High | 2-3 weeks | 1-2 weeks | None | Schema awareness, field validation | Unit, Integration, Regression, Performance |
+| 2. Field Transforms | High | 1-2 weeks | 1 week | Phase 1 | Field mapping, transformations | Unit, Integration, Transformation, Performance |
+| 3. Query Building | High | 2-3 weeks | 1-2 weeks | Phase 1 | Where, orderBy, pagination | Unit, Integration, Filter, Aggregation, Performance |
+| 4. Caching | Medium | 2-3 weeks | 1-2 weeks | Phase 1 | Query caching, performance monitoring | Unit, Integration, Performance, Concurrent |
+| 5. Batch Processing | Medium | 3-4 weeks | 2 weeks | Phase 1 | Multiple query optimization | Unit, Integration, Dependency, Performance, Concurrent |
+| 6. Query Analysis | Medium | 2-3 weeks | 1-2 weeks | Phase 1 | Recommendations, insights | Unit, Integration, Analysis, Performance, Report |
+| 7. Plugin System | Low | 3-4 weeks | 2 weeks | None | Extensibility, custom plugins | Unit, Integration, Plugin, Lifecycle, Security |
+| 8. Fragment Handling | Low | 2-3 weeks | 1-2 weeks | Phase 1 | Advanced fragment support | Unit, Integration, Fragment, Optimization, Memory |
+| 9. Type Safety | Medium | 2-3 weeks | 1-2 weeks | Phase 1 | TypeScript integration | Type, Unit, Integration, Schema, IntelliSense |
+| 10. DB Optimizations | Low | 4-5 weeks | 2-3 weeks | Phase 1 | Database-specific optimizations | Unit, Integration, Database, Index, Cross-DB |
+| 11. Monitoring | Low | 3-4 weeks | 2 weeks | Phase 4 | Real-time metrics, alerting | Unit, Integration, Monitoring, Alert, Concurrent |
+| 12. Migration | Low | 2-3 weeks | 1-2 weeks | Phase 1 | Schema migration helpers | Unit, Integration, Migration, Version, CLI |
+| 13. Federation | Low | 4-5 weeks | 2-3 weeks | Phase 1 | Apollo Federation support | Unit, Integration, Entity, Subgraph, Cross-Subgraph |
+| 14. Custom Resolvers | Low | 3-4 weeks | 2 weeks | Phase 1 | Computed fields, resolvers | Unit, Integration, Resolver, Dependency, Concurrent |
+| 15. Templates | Low | 2-3 weeks | 1-2 weeks | Phase 1 | Query templates, marketplace | Unit, Integration, Template, Export/Import, Security |
 
 Each phase is designed to be implemented independently while building upon the core functionality. Start with Phase 1 (Schema Validation) as it provides the foundation for most other features.
+
+### Testing Strategy Overview
+
+Each phase includes comprehensive testing requirements covering:
+- **Unit Tests**: Core logic, algorithms, and isolated functionality
+- **Integration Tests**: End-to-end workflows and component interactions
+- **Regression Tests**: Backward compatibility and existing functionality preservation
+- **Performance Tests**: Overhead measurement and optimization validation
+- **Error Handling Tests**: Failure scenarios and recovery mechanisms
+- **Configuration Tests**: Option validation and setup verification
+- **Concurrent Tests**: Multi-threading and race condition prevention (where applicable)
+
+Testing effort is estimated at 40-60% of total implementation time to ensure robust, production-ready features with comprehensive coverage preventing functionality regressions.
