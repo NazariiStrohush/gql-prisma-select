@@ -1,5 +1,6 @@
 import { Kind } from 'graphql/language/kinds';
 import type { GraphQLResolveInfo } from 'types';
+import type { GraphQLSchema } from 'graphql';
 import { TransformationEngine, ResultTransformer } from './transforms';
 import {
   FragmentOptions,
@@ -13,6 +14,18 @@ import {
   FragmentStats,
   FragmentAnalysis
 } from './fragments';
+import {
+  TypedOptions,
+  TypeValidationOptions,
+  ValidationResult,
+  ValidationError,
+  ValidationWarning,
+  TypedQueryBuilderOptions,
+  TypeCheckContext,
+  PrismaSelect,
+  SafeSelect,
+  InferSelection
+} from './types';
 
 interface SelectInclude {
   select?: Include;
@@ -395,42 +408,6 @@ export class GQLPrismaSelect<S = any, I = any> {
     return this.transformationEngine;
   }
 
-  /**
-   * Creates a GQLPrismaSelect instance with transforms
-   */
-  static withTransforms(
-    info: GraphQLResolveInfo,
-    transforms: TransformOptions,
-    params: { excludeFields?: string[]; get?: string | string[] } = {}
-  ): GQLPrismaSelect {
-    return new GQLPrismaSelect(info, { ...params, transforms });
-  }
-
-  /**
-   * Creates a GQLPrismaSelect instance with fragment handling
-   */
-  static withFragments(
-    info: GraphQLResolveInfo,
-    fragments: FragmentOptions,
-    params: { excludeFields?: string[]; get?: string | string[]; transforms?: TransformOptions } = {}
-  ): GQLPrismaSelect {
-    return new GQLPrismaSelect(info, { ...params, fragments });
-  }
-
-  /**
-   * Get fragment statistics
-   */
-  static getFragmentStats(): FragmentStats {
-    return FragmentRegistry.getUsageStats();
-  }
-
-  /**
-   * Analyze fragments for optimization opportunities
-   */
-  static analyzeFragments(): FragmentAnalysis {
-    const fragments = FragmentRegistry.list();
-    return FragmentAnalyzer.analyze(fragments);
-  }
 
   // Helper methods for fragment processing
   private transformFragmentSelections(selections: readonly any[]): Include {
@@ -496,4 +473,7 @@ export class GQLPrismaSelect<S = any, I = any> {
     return Array.from(dependencies);
   }
 }
+
+// Phase 8: Type-Safe Integration - Classes moved to separate files
+
 
