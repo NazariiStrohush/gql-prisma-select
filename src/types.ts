@@ -6,8 +6,10 @@ import type { GraphQLSchema } from 'graphql';
  * Infer selection types from GraphQL schema
  * Recursively builds a type that represents the selection structure
  */
-export type InferSelection<T> = T extends object
-  ? { [K in keyof T]?: T[K] extends object ? boolean | InferSelection<T[K]> : boolean }
+export type InferSelection<T> = NonNullable<T> extends (infer U)[]
+  ? InferSelection<U>
+  : NonNullable<T> extends object
+  ? { [K in keyof NonNullable<T>]?: NonNullable<T>[K] extends object ? boolean | InferSelection<NonNullable<T>[K]> : boolean }
   : boolean;
 
 /**
@@ -43,6 +45,7 @@ export interface TypeValidationOptions {
   warnOnMissing?: boolean;          // Warn on missing fields
   validateEnums?: boolean;          // Validate enum values
   validateRelations?: boolean;      // Validate relation types
+  customValidators?: Record<string, (value: any) => boolean | string>; // Custom validation functions
 }
 
 /**

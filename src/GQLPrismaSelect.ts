@@ -80,6 +80,14 @@ export class GQLPrismaSelect<S = any, I = any> {
       fragments?: FragmentOptions;
     } = {}
   ) {
+    if (!info) {
+      throw new Error('GraphQLResolveInfo is required');
+    }
+
+    if (!info.fieldNodes || !Array.isArray(info.fieldNodes) || info.fieldNodes.length === 0) {
+      throw new Error('fieldNodes is required');
+    }
+
     this.excludeFields = params.excludeFields || ['__typename'];
     this.info = info;
     this.fragmentOptions = params.fragments;
@@ -300,21 +308,33 @@ export class GQLPrismaSelect<S = any, I = any> {
       selections?.reduce((acc, selection) => {
         // Get values
         const { name, selectionSet } = selection;
-        const { value } = name;
-        const { selections } = selectionSet || {};
+        const { selections: nestedSelections } = selectionSet || {};
+
         // Check for type
         if (selection.kind === Kind.FIELD) {
+          // Validate field structure
+          if (!selection.name || !selection.name.value) {
+            throw new Error('Field node must have a name');
+          }
+
+          const { value } = name;
+
           if (this.excludeFields.includes(value)) {
             // Skip excluded field, return accumulator as-is
             return acc;
           }
 
           acc[value] = this.selectOrIncludeOrBoolean(
-            this.transformSelections(selections)
+            this.transformSelections(nestedSelections)
           );
+        } else if (selection.kind === Kind.INLINE_FRAGMENT) {
+          // Merge inline fragment selections into accumulator
+          const inlineSelections = this.transformSelections(nestedSelections);
+          acc = { ...acc, ...inlineSelections };
         } else if (selection.kind === Kind.FRAGMENT_SPREAD) {
           // Check if fragment exists in processed fragments
-          const fragment = this.fragments[value];
+          const fragmentName = name?.value;
+          const fragment = fragmentName ? this.fragments[fragmentName] : null;
           if (fragment) {
             // Fragment is already processed with advanced features, merge it directly
             acc = { ...acc, ...fragment };
@@ -322,7 +342,7 @@ export class GQLPrismaSelect<S = any, I = any> {
             // Check if fragment should be cached
             if (this.fragmentCache) {
               const cacheKey = FragmentCache.generateKey({
-                name: value,
+                name: fragmentName,
                 type: 'Unknown', // Type not needed for caching key
                 selections: fragment,
                 metadata: {
@@ -341,7 +361,7 @@ export class GQLPrismaSelect<S = any, I = any> {
               } else {
                 // Cache the fragment for future use
                 this.fragmentCache.set(cacheKey, {
-                  name: value,
+                  name: fragmentName,
                   type: 'Unknown',
                   selections: fragment,
                   metadata: {

@@ -79,10 +79,10 @@ export interface FragmentCacheEntry {
 }
 
 export interface CacheConfig {
-  enabled: boolean;
-  ttl: number;              // Time to live in milliseconds
-  maxSize: number;         // Maximum cache entries
-  strategy: 'LRU' | 'LFU' | 'TTL';
+  enabled?: boolean;
+  ttl?: number;              // Time to live in milliseconds
+  maxSize?: number;         // Maximum cache entries
+  strategy?: 'LRU' | 'LFU' | 'TTL';
   compression?: boolean;   // Compress cached data
 }
 

@@ -17,6 +17,7 @@ export class TypeValidator {
       warnOnMissing: true,
       validateEnums: true,
       validateRelations: true,
+      customValidators: {},
       ...options
     };
   }
@@ -252,6 +253,23 @@ export class TypeValidator {
     errors: ValidationError[],
     warnings: ValidationWarning[]
   ): void {
+    if (this.options.customValidators && this.options.customValidators[scalarName]) {
+      const validator = this.options.customValidators[scalarName];
+      const result = validator(value);
+      
+      if (result !== true) {
+        const message = typeof result === 'string' ? result : `Invalid value for custom scalar ${scalarName}`;
+        errors.push({
+          field: path.join('.'),
+          expectedType: scalarName,
+          actualType: typeof value,
+          message,
+          path
+        });
+      }
+      return;
+    }
+
     const actualType = typeof value;
 
     switch (scalarName) {
