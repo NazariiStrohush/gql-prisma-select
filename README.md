@@ -1,7 +1,7 @@
 # GQLPrismaSelect
 
 [![CI](https://github.com/NazariiStrohush/gql-prisma-select/actions/workflows/ci.yml/badge.svg)](https://github.com/NazariiStrohush/gql-prisma-select/actions/workflows/ci.yml)
-[![npm version](https://badge.fury.io/js/%40nazariistrohush%2Fgql-prisma-select.svg)](https://badge.fury.io/js/%40nazariistrohush%2Fgql-prisma-select)
+[![npm version](https://img.shields.io/npm/v/@nazariistrohush/gql-prisma-select.svg)](https://www.npmjs.com/package/@nazariistrohush/gql-prisma-select)
 [![Test Coverage](https://codecov.io/gh/NazariiStrohush/gql-prisma-select/branch/master/graph/badge.svg)](https://codecov.io/gh/NazariiStrohush/gql-prisma-select)
 
 **Eliminate GraphQL over-fetching and under-fetching with automatic Prisma select/include generation**
