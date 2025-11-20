@@ -1,4 +1,5 @@
 import { Kind } from 'graphql/language/kinds';
+import type { ArgumentNode, ValueNode, ObjectFieldNode } from 'graphql';
 import type { GraphQLResolveInfo } from 'types';
 import type { GraphQLSchema } from 'graphql';
 import { TransformationEngine, ResultTransformer } from './transforms';
@@ -30,6 +31,12 @@ import {
 interface SelectInclude {
   select?: Include;
   include?: Include;
+  take?: number;
+  skip?: number;
+  cursor?: any;
+  where?: any;
+  orderBy?: any;
+  distinct?: any;
 }
 
 type Include = Record<string, boolean | SelectInclude>;
@@ -64,6 +71,7 @@ export class GQLPrismaSelect<S = any, I = any> {
   public originalSelect?: S;
   public include?: I;
   public select?: S;
+  public args: Record<string, any> = {};
   private excludeFields: string[] = [];
   private readonly fragments: Record<string, Include>;
   private transformationEngine?: TransformationEngine;
@@ -105,6 +113,9 @@ export class GQLPrismaSelect<S = any, I = any> {
 
     // Parse and save fragments with enhanced processing
     this.fragments = this.processFragments();
+    
+    this.args = this.getPrismaArgs(info.fieldNodes[0].arguments);
+    
     const res = this.transformPrismaIncludeFromQuery(info);
 
     // Save original values
@@ -288,6 +299,44 @@ export class GQLPrismaSelect<S = any, I = any> {
     );
   }
 
+  private getPrismaArgs(argumentNodes?: readonly ArgumentNode[]): Record<string, any> {
+    const args: Record<string, any> = {};
+    if (!argumentNodes) return args;
+
+    for (const arg of argumentNodes) {
+      const name = arg.name.value;
+      if (['take', 'skip', 'orderBy', 'where', 'cursor', 'distinct'].includes(name)) {
+        args[name] = this.parseValueNode(arg.value);
+      }
+    }
+    return args;
+  }
+
+  private parseValueNode(value: ValueNode): any {
+    switch (value.kind) {
+      case Kind.INT:
+        return parseInt(value.value, 10);
+      case Kind.FLOAT:
+        return parseFloat(value.value);
+      case Kind.STRING:
+      case Kind.ENUM:
+        return value.value;
+      case Kind.BOOLEAN:
+        return value.value;
+      case Kind.LIST:
+        return value.values.map(v => this.parseValueNode(v));
+      case Kind.OBJECT:
+        return value.fields.reduce((obj, field) => {
+          obj[field.name.value] = this.parseValueNode(field.value);
+          return obj;
+        }, {} as Record<string, any>);
+      case Kind.NULL:
+        return null;
+      default:
+        return undefined;
+    }
+  }
+
   private selectOrIncludeOrBoolean(selections: Include = {}) {
     const values = Object.values(selections);
     if (!values.length) {
@@ -324,9 +373,20 @@ export class GQLPrismaSelect<S = any, I = any> {
             return acc;
           }
 
-          acc[value] = this.selectOrIncludeOrBoolean(
+          const args = this.getPrismaArgs(selection.arguments);
+          let fieldVal: any = this.selectOrIncludeOrBoolean(
             this.transformSelections(nestedSelections)
           );
+
+          if (Object.keys(args).length > 0) {
+            if (typeof fieldVal === 'object') {
+              fieldVal = { ...fieldVal, ...args };
+            } else {
+              fieldVal = args;
+            }
+          }
+
+          acc[value] = fieldVal;
         } else if (selection.kind === Kind.INLINE_FRAGMENT) {
           // Merge inline fragment selections into accumulator
           const inlineSelections = this.transformSelections(nestedSelections);
@@ -455,9 +515,20 @@ export class GQLPrismaSelect<S = any, I = any> {
         if (this.excludeFields.includes(value)) {
           return acc;
         }
-        acc[value] = this.selectOrIncludeOrBoolean(
+        const args = this.getPrismaArgs(selection.arguments);
+        let fieldVal: any = this.selectOrIncludeOrBoolean(
           this.transformFragmentSelections(nestedSelections, processedFragments)
         );
+
+        if (Object.keys(args).length > 0) {
+          if (typeof fieldVal === 'object') {
+            fieldVal = { ...fieldVal, ...args };
+          } else {
+            fieldVal = args;
+          }
+        }
+
+        acc[value] = fieldVal;
       } else if (selection.kind === Kind.FRAGMENT_SPREAD) {
         // Use processed fragments parameter if available, otherwise fall back to this.fragments
         const fragment = processedFragments ? processedFragments[value] : this.fragments[value];

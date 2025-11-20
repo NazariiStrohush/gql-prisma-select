@@ -1,3 +1,4 @@
+import { Kind } from 'graphql/language/kinds';
 import { GQLPrismaSelect } from '../GQLPrismaSelect';
 import {
   createMockGraphQLInfo,
@@ -1180,6 +1181,102 @@ describe('GQLPrismaSelect', () => {
 
       // Should handle gracefully
       expect(result).toBeInstanceOf(GQLPrismaSelect);
+    });
+  });
+
+  describe('Phase 8: Prisma Arguments Support', () => {
+    describe('21. Nested arguments (take, skip, etc.)', () => {
+      it('should handle "take" argument on nested relation', () => {
+        const fieldNodes = [
+          createFieldNode('id'),
+          createFieldNode('Posts', [createFieldNode('id')], [
+            { name: 'take', value: 5 }
+          ])
+        ];
+        const info = createMockGraphQLInfo(fieldNodes);
+        const result = new GQLPrismaSelect(info);
+
+        expect(result.select).toBeDefined();
+        expect(result.select?.Posts).toBeDefined();
+        expect(result.select?.Posts.take).toBe(5);
+        expect(result.select?.Posts.select).toBeDefined();
+        expect(result.select?.Posts.select.id).toBe(true);
+      });
+
+      it('should handle multiple arguments (take, skip)', () => {
+        const fieldNodes = [
+          createFieldNode('id'),
+          createFieldNode('Posts', [createFieldNode('id')], [
+            { name: 'take', value: 10 },
+            { name: 'skip', value: 2 }
+          ])
+        ];
+        const info = createMockGraphQLInfo(fieldNodes);
+        const result = new GQLPrismaSelect(info);
+
+        expect(result.select?.Posts.take).toBe(10);
+        expect(result.select?.Posts.skip).toBe(2);
+      });
+
+      it('should handle arguments with include strategy', () => {
+         const fieldNodes = [
+           createFieldNode('Posts', [createFieldNode('id')], [
+             { name: 'take', value: 5 }
+           ])
+         ];
+         
+         const info = createMockGraphQLInfo(fieldNodes);
+         const result = new GQLPrismaSelect(info);
+         
+         expect(result.include).toBeDefined();
+         expect(result.include?.Posts).toBeDefined();
+         expect(result.include?.Posts.take).toBe(5);
+         expect(result.include?.Posts.select).toBeDefined();
+      });
+    });
+
+    describe('22. Root arguments', () => {
+      it('should extract arguments from root field', () => {
+        const fieldNodes = [createFieldNode('id')];
+        const info = createMockGraphQLInfo(fieldNodes);
+        
+        // Manually add arguments to the root field node
+        (info.fieldNodes[0] as any).arguments = [
+          {
+            kind: Kind.ARGUMENT,
+            name: { kind: Kind.NAME, value: 'take' },
+            value: { kind: Kind.INT, value: '5' }
+          }
+        ];
+        
+        const result = new GQLPrismaSelect(info);
+        
+        expect(result.args).toBeDefined();
+        expect(result.args.take).toBe(5);
+      });
+
+      it('should extract multiple root arguments', () => {
+        const fieldNodes = [createFieldNode('id')];
+        const info = createMockGraphQLInfo(fieldNodes);
+        
+        (info.fieldNodes[0] as any).arguments = [
+          {
+            kind: Kind.ARGUMENT,
+            name: { kind: Kind.NAME, value: 'take' },
+            value: { kind: Kind.INT, value: '10' }
+          },
+          {
+            kind: Kind.ARGUMENT,
+            name: { kind: Kind.NAME, value: 'skip' },
+            value: { kind: Kind.INT, value: '2' }
+          }
+        ];
+        
+        const result = new GQLPrismaSelect(info);
+        
+        expect(result.args.take).toBe(10);
+        expect(result.args.skip).toBe(2);
+      });
     });
   });
 });

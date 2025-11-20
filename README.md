@@ -12,6 +12,7 @@ GQLPrismaSelect automatically converts your GraphQL query selections into optimi
 
 - 🚀 **Performance**: Fetch only the data your GraphQL queries request
 - 🎯 **Precision**: Eliminate over-fetching and under-fetching automatically
+- 🎛️ **Arguments Support**: Pass Prisma arguments (take, skip, orderBy) directly in GraphQL queries
 - 🔧 **Simple**: Drop-in replacement for manual select/include objects
 - 🛠️ **Flexible**: Support for nested relations, advanced fragment handling, and custom transformations
 - 🎨 **Modern**: Built for Apollo Server and Prisma ecosystems
@@ -86,6 +87,7 @@ GQLPrismaSelect provides a comprehensive set of features to optimize your GraphQ
 ### Core Features
 
 - **[Automatic Selection Generation](#-basic-usage)**: Convert GraphQL queries to Prisma select/include objects
+- **[Prisma Arguments Support](#prisma-arguments-support)**: Use `take`, `skip`, `orderBy` and more directly in nested relations
 - **[Nested Relations](#nested-relations)**: Handle complex nested queries with multiple levels of relations
 - **[Fragment Support](#fragments)**: Full support for GraphQL fragments and inline fragments
 - **[Field Exclusion](#field-exclusion)**: Automatically exclude unwanted fields like `__typename`
@@ -180,6 +182,44 @@ async userWithPosts(@Info() info: GraphQLResolveInfo, @Args('id') id: number) {
     select,
   });
 }
+```
+
+### Prisma Arguments Support (New! ✨)
+
+One of the best features of `gql-prisma-select` is the ability to pass Prisma arguments like `take`, `skip`, `orderBy`, `where`, and `distinct` directly from your GraphQL query. This works for both nested relations and root-level fields.
+
+**GraphQL Query:**
+```graphql
+query {
+  users(take: 10, orderBy: { createdAt: desc }) {
+    id
+    email
+    posts(take: 5, skip: 1, orderBy: { title: asc }) {
+      title
+    }
+  }
+}
+```
+
+**Resulting Prisma Query (Automatically Generated):**
+```javascript
+// Nested arguments are automatically injected into select/include
+{
+  select: {
+    id: true,
+    email: true,
+    posts: {
+      select: { title: true },
+      take: 5,
+      skip: 1,
+      orderBy: { title: 'asc' }
+    }
+  }
+}
+
+// Root arguments are available via .args property
+const gqlSelect = new GQLPrismaSelect(info);
+// gqlSelect.args = { take: 10, orderBy: { createdAt: 'desc' } }
 ```
 
 ### Field Exclusion
@@ -818,6 +858,7 @@ interface TransformOptions {
 |----------|------|-------------|
 | `include` | `object` | Prisma include object for relations |
 | `select` | `object` | Prisma select object for scalar fields |
+| `args` | `object` | Extracted root-level arguments (take, skip, etc.) |
 | `originalInclude` | `object` | Include object without transformations |
 | `originalSelect` | `object` | Select object without transformations |
 

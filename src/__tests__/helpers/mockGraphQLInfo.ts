@@ -4,7 +4,8 @@ import type { GraphQLResolveInfo } from '../../../types';
 // Helper to create a field node with selections
 export function createFieldNode(
   name: string,
-  selections: any[] = []
+  selections: any[] = [],
+  args: any[] = []
 ): any {
   return {
     kind: Kind.FIELD,
@@ -12,6 +13,38 @@ export function createFieldNode(
       kind: Kind.NAME,
       value: name,
     },
+    arguments: args.map(arg => {
+      const createValueNode = (value: any): any => {
+        if (typeof value === 'number') {
+          return { kind: Kind.INT, value: value.toString() };
+        } else if (typeof value === 'boolean') {
+          return { kind: Kind.BOOLEAN, value: value };
+        } else if (value && typeof value === 'object') {
+          if (Array.isArray(value)) {
+             return {
+               kind: Kind.LIST,
+               values: value.map(createValueNode)
+             };
+          }
+          return {
+            kind: Kind.OBJECT,
+            fields: Object.entries(value).map(([k, v]) => ({
+              kind: Kind.OBJECT_FIELD,
+              name: { kind: Kind.NAME, value: k },
+              value: createValueNode(v)
+            }))
+          };
+        }
+        // Default to string (or enum if we want to be precise, but string is safer for generic tests)
+        return { kind: Kind.STRING, value: value };
+      };
+
+      return {
+        kind: Kind.ARGUMENT,
+        name: { kind: Kind.NAME, value: arg.name },
+        value: createValueNode(arg.value)
+      };
+    }),
     selectionSet: selections.length > 0
       ? {
           kind: Kind.SELECTION_SET,
