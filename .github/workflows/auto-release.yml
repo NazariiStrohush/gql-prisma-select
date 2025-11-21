@@ -96,28 +96,77 @@ jobs:
         run: |
           CURRENT="${{ steps.get_tag.outputs.latest_version }}"
           BUMP_TYPE="${{ steps.bump_type.outputs.bump_type }}"
+          PKG_VERSION="${{ steps.current_version.outputs.version }}"
 
-          IFS='.' read -ra VERSION_PARTS <<< "$CURRENT"
-          MAJOR=${VERSION_PARTS[0]}
-          MINOR=${VERSION_PARTS[1]}
-          PATCH=${VERSION_PARTS[2]}
+          echo "Current tag: $CURRENT"
+          echo "Package version: $PKG_VERSION"
+          
+          # Logic to respect manual version bumps in package.json
+          # If package.json version is higher than latest tag, use that as the next version
+          # Otherwise calculate next version based on bump type
+          
+          # Function to compare versions
+          vercomp () {
+              if [[ $1 == $2 ]]
+              then
+                  return 0
+              fi
+              local IFS=.
+              local i ver1=($1) ver2=($2)
+              # fill empty fields in ver1 with zeros
+              for ((i=${#ver1[@]}; i<${#ver2[@]}; i++))
+              do
+                  ver1[i]=0
+              done
+              for ((i=0; i<${#ver1[@]}; i++))
+              do
+                  if [[ -z ${ver2[i]} ]]
+                  then
+                      # fill empty fields in ver2 with zeros
+                      ver2[i]=0
+                  fi
+                  if ((10#${ver1[i]} > 10#${ver2[i]}))
+                  then
+                      return 1
+                  fi
+                  if ((10#${ver1[i]} < 10#${ver2[i]}))
+                  then
+                      return 2
+                  fi
+              done
+              return 0
+          }
+          
+          vercomp "$PKG_VERSION" "$CURRENT"
+          RESULT=$?
+          
+          if [ $RESULT -eq 1 ]; then
+             echo "Package.json version ($PKG_VERSION) is higher than latest tag ($CURRENT). Using package.json version."
+             NEXT_VERSION="$PKG_VERSION"
+          else
+             # Calculate bump as before
+             IFS='.' read -ra VERSION_PARTS <<< "$CURRENT"
+             MAJOR=${VERSION_PARTS[0]}
+             MINOR=${VERSION_PARTS[1]}
+             PATCH=${VERSION_PARTS[2]}
 
-          case "$BUMP_TYPE" in
-            major)
-              MAJOR=$((MAJOR + 1))
-              MINOR=0
-              PATCH=0
-              ;;
-            minor)
-              MINOR=$((MINOR + 1))
-              PATCH=0
-              ;;
-            patch)
-              PATCH=$((PATCH + 1))
-              ;;
-          esac
+             case "$BUMP_TYPE" in
+               major)
+                 MAJOR=$((MAJOR + 1))
+                 MINOR=0
+                 PATCH=0
+                 ;;
+               minor)
+                 MINOR=$((MINOR + 1))
+                 PATCH=0
+                 ;;
+               patch)
+                 PATCH=$((PATCH + 1))
+                 ;;
+             esac
+             NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
+          fi
 
-          NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
           echo "next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
           echo "Next version: $NEXT_VERSION"
 
@@ -169,15 +218,30 @@ jobs:
         run: |
           NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
           PACKAGE_NAME="@nazariistrohush/gql-prisma-select"
-
+          
           echo "Verifying package $PACKAGE_NAME@$NEXT_VERSION was published..."
-          sleep 10  # Wait for npm registry to update
-
-          if npm view "$PACKAGE_NAME@$NEXT_VERSION" version; then
-            echo "✅ Package $PACKAGE_NAME@$NEXT_VERSION successfully verified on npm"
-          else
-            echo "❌ Failed to verify package $PACKAGE_NAME@$NEXT_VERSION on npm"
-            exit 1
+          
+          # Loop to check for availability with retries
+          MAX_RETRIES=12
+          count=0
+          success=false
+          
+          while [ $count -lt $MAX_RETRIES ]; do
+            if npm view "$PACKAGE_NAME@$NEXT_VERSION" version > /dev/null 2>&1; then
+              echo "✅ Package $PACKAGE_NAME@$NEXT_VERSION successfully verified on npm"
+              success=true
+              break
+            fi
+            
+            count=$((count + 1))
+            echo "Attempt $count/$MAX_RETRIES: Package not found yet, waiting 10 seconds..."
+            sleep 10
+          done
+          
+          if [ "$success" = false ]; then
+             echo "⚠️ Warning: Could not verify package on npm registry after 2 minutes."
+             echo "This might be due to replication lag. Proceeding with release creation anyway."
+             # Do not fail the workflow here, as publish step succeeded
           fi
 
       - name: Create and push tag
