@@ -145,26 +145,26 @@ jobs:
              NEXT_VERSION="$PKG_VERSION"
           else
              # Calculate bump as before
-             IFS='.' read -ra VERSION_PARTS <<< "$CURRENT"
-             MAJOR=${VERSION_PARTS[0]}
-             MINOR=${VERSION_PARTS[1]}
-             PATCH=${VERSION_PARTS[2]}
+          IFS='.' read -ra VERSION_PARTS <<< "$CURRENT"
+          MAJOR=${VERSION_PARTS[0]}
+          MINOR=${VERSION_PARTS[1]}
+          PATCH=${VERSION_PARTS[2]}
 
-             case "$BUMP_TYPE" in
-               major)
-                 MAJOR=$((MAJOR + 1))
-                 MINOR=0
-                 PATCH=0
-                 ;;
-               minor)
-                 MINOR=$((MINOR + 1))
-                 PATCH=0
-                 ;;
-               patch)
-                 PATCH=$((PATCH + 1))
-                 ;;
-             esac
-             NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
+          case "$BUMP_TYPE" in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+          NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
           fi
 
           echo "next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
@@ -218,7 +218,7 @@ jobs:
         run: |
           NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
           PACKAGE_NAME="@nazariistrohush/gql-prisma-select"
-          
+
           echo "Verifying package $PACKAGE_NAME@$NEXT_VERSION was published..."
           
           # Loop to check for availability with retries
@@ -228,7 +228,7 @@ jobs:
           
           while [ $count -lt $MAX_RETRIES ]; do
             if npm view "$PACKAGE_NAME@$NEXT_VERSION" version > /dev/null 2>&1; then
-              echo "✅ Package $PACKAGE_NAME@$NEXT_VERSION successfully verified on npm"
+            echo "✅ Package $PACKAGE_NAME@$NEXT_VERSION successfully verified on npm"
               success=true
               break
             fi
