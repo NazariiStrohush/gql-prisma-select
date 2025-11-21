@@ -10,7 +10,7 @@ GQLPrismaSelect automatically converts your GraphQL query selections into optimi
 
 ## ✨ Key Benefits
 
-- 🚀 **Performance**: Fetch only the data your GraphQL queries request
+- 🚀 **Performance**: Fetch only the data your GraphQL queries request, including nested data
 - 🎯 **Precision**: Eliminate over-fetching and under-fetching automatically
 - 🎛️ **Arguments Support**: Pass Prisma arguments (take, skip, orderBy) directly in GraphQL queries
 - 🔧 **Simple**: Drop-in replacement for manual select/include objects
