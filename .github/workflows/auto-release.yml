@@ -94,133 +94,39 @@ jobs:
       - name: Calculate next version
         id: next_version
         run: |
-          CURRENT="${{ steps.get_tag.outputs.latest_version }}"
           BUMP_TYPE="${{ steps.bump_type.outputs.bump_type }}"
           PKG_VERSION="${{ steps.current_version.outputs.version }}"
 
-          echo "Current tag: $CURRENT"
           echo "Package version: $PKG_VERSION"
-          
-          # If package.json version is strictly greater than current tag, use it directly.
-          # Otherwise, apply the requested bump to the package.json version.
-          
-          # Function to compare versions
-          # Returns 1 if $1 > $2, 2 if $1 < $2, 0 if equal
-          vercomp () {
-              if [[ $1 == $2 ]]; then return 0; fi
-              local IFS=.
-              local i ver1=($1) ver2=($2)
-              # fill empty fields in ver1 with zeros
-              for ((i=${#ver1[@]}; i<${#ver2[@]}; i++)); do ver1[i]=0; done
-              for ((i=0; i<${#ver1[@]}; i++)); do
-                  if [[ -z ${ver2[i]} ]]; then ver2[i]=0; fi
-                  if ((10#${ver1[i]} > 10#${ver2[i]})); then return 1; fi
-                  if ((10#${ver1[i]} < 10#${ver2[i]})); then return 2; fi
-              done
-              return 0
-          }
-          
-          vercomp "$PKG_VERSION" "$CURRENT"
-          RESULT=$?
-          
-          # If package.json > tag, use package.json version as BASE
-          if [ $RESULT -eq 1 ]; then
-             echo "Package.json version ($PKG_VERSION) is higher than latest tag ($CURRENT). Using package.json version as base."
-             BASE_VERSION="$PKG_VERSION"
-             # If it's a manual workflow dispatch, we MIGHT still want to bump this base if intended
-             # But typically if I set 1.0.0 in package.json manually, I want 1.0.0.
-             # So if manual change is detected (PKG > TAG), we assume that IS the target version unless specifically bumped again?
-             # Actually, the user request is: "get current version from package.json and bump related to requested level"
-             # So if package.json is 1.0.0 and I request 'patch', it should become 1.0.1
-             # If package.json is 1.0.0 and I just pushed (default patch), it should become 1.0.1?
-             # WAIT. If I manually set 1.0.0, I probably want to release 1.0.0.
-             # BUT the prompt says "bump related to requested level".
-             # Let's interpret "bump related to requested level" as: Always take package.json version as the source of truth,
-             # and apply the bump to THAT.
-             
-             # However, if I just manually edited package.json to 1.0.0, and I push, the "bump type" defaults to patch.
-             # So it would become 1.0.1. This might NOT be what is wanted if I explicitly set 1.0.0.
-             # Usually if package.json is manually changed, that IS the release version.
-             
-             # Let's look at the error: "version bumped to 0.2.0 instead of next from 1.0.0"
-             # This means it ignored 1.0.0 and bumped 0.1.x to 0.2.0.
-             
-             # If I set 1.0.0, I want 1.0.0 to be released.
-             # UNLESS I am running a workflow_dispatch to say "bump minor", then I want 1.1.0?
-             # Let's stick to standard behavior:
-             # 1. If package.json version > latest tag, USE package.json version exactly (assume manual bump).
-             # 2. If package.json version <= latest tag, calculate next version from TAG + bump type.
-             
-             NEXT_VERSION="$PKG_VERSION"
-             echo "Using manual version from package.json: $NEXT_VERSION"
+          echo "Bump type: $BUMP_TYPE"
 
-          else
-             # Package.json is old or same as tag. Calculate next version from TAG.
-             # But wait, the user asked: "change flow to get current version from package,json and bump related to requested level"
-             # This implies ignoring tags for the calculation base?
-             # If I have 0.1.7 in tag, and 0.1.7 in package.json. Bump patch -> 0.1.8.
-             # If I have 0.1.7 in tag, and 1.0.0 in package.json. Bump patch -> 1.0.1? Or 1.0.0?
-             
-             # If I assume the user WANTS the bump logic to always run on top of package.json:
-             # Then 1.0.0 + patch = 1.0.1.
-             # But if they manually set 1.0.0, they probably wanted 1.0.0.
-             
-             # The error "version bumped to 0.2.0 instead of next from 1.0.0" suggests they expected 1.0.0 (or something derived from it).
-             # My previous fix (which tried to use PKG_VERSION if > CURRENT) failed because of shell script syntax error likely? 
-             # "Error: Process completed with exit code 1." often comes from syntax errors.
-             # The syntax error was likely `if [ $RESULT -eq 1 ]; then` if vercomp didn't return properly or something.
-             
-             # Let's implement this logic:
-             # BASE = package.json version.
-             # IF manual dispatch event: apply bump to BASE.
-             # IF push event:
-             #   IF package.json > latest tag: use package.json version AS IS (manual bump).
-             #   ELSE: apply default patch bump to latest tag (automatic bump).
-             
-             if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-                # Explicit bump requested. Apply to package.json version.
-                BASE_VERSION="$PKG_VERSION"
-                SHOULD_BUMP=true
-             else
-                # Automatic push
-                if [ $RESULT -eq 1 ]; then
-                   # Package.json manually updated to be higher. Use it as is.
-                   NEXT_VERSION="$PKG_VERSION"
-                   SHOULD_BUMP=false
-                   echo "Manual version update detected in package.json. Releasing $NEXT_VERSION"
-                else
-                   # Package.json not updated manually. Bump the TAG.
-                   BASE_VERSION="$CURRENT"
-                   SHOULD_BUMP=true
-                fi
-             fi
-             
-             if [ "$SHOULD_BUMP" = true ]; then
-                IFS='.' read -ra VERSION_PARTS <<< "$BASE_VERSION"
-                MAJOR=${VERSION_PARTS[0]}
-                MINOR=${VERSION_PARTS[1]}
-                PATCH=${VERSION_PARTS[2]}
+          # Use package.json version as the base and apply bump logic
+          IFS='.' read -ra VERSION_PARTS <<< "$PKG_VERSION"
+          MAJOR="${VERSION_PARTS[0]}"
+          MINOR="${VERSION_PARTS[1]}"
+          PATCH="${VERSION_PARTS[2]}"
 
-                case "$BUMP_TYPE" in
-                  major)
-                    MAJOR=$((MAJOR + 1))
-                    MINOR=0
-                    PATCH=0
-                    ;;
-                  minor)
-                    MINOR=$((MINOR + 1))
-                    PATCH=0
-                    ;;
-                  patch)
-                    PATCH=$((PATCH + 1))
-                    ;;
-                esac
-                NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
-             fi
-          fi
+          echo "Parsed: MAJOR=$MAJOR, MINOR=$MINOR, PATCH=$PATCH"
+
+          case "$BUMP_TYPE" in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+
+          NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
 
           echo "next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
-          echo "Next version: $NEXT_VERSION"
+          echo "Calculated next version: $NEXT_VERSION"
 
       # Release Decision Phase
       - name: Check if tag already exists
@@ -264,6 +170,20 @@ jobs:
             echo "Failed to publish to npm"
             exit 1
           fi
+
+      - name: Commit updated package.json
+        if: steps.check_tag.outputs.should_release == 'true'
+        run: |
+          NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add package.json
+          git commit -m "chore: bump version to $NEXT_VERSION [skip ci]"
+          git push origin HEAD:master
+
+          echo "✅ Committed version bump to package.json"
 
       - name: Verify npm publication
         if: steps.check_tag.outputs.should_release == 'true'
